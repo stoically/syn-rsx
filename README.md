@@ -1,5 +1,10 @@
 # syn-rsx
 
+[![crates.io page](https://img.shields.io/crates/v/syn-rsx.svg)](https://crates.io/crates/syn-rsx)
+[![docs.rs page](https://docs.rs/syn-rsx/badge.svg)](https://docs.rs/syn-rsx/)
+![build](https://github.com/stoically/syn-rsx/workflows/build/badge.svg)
+![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
+
 [syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html). The parsed result is a nested `Node` structure modelled after the browser DOM.
 
 ```rust
