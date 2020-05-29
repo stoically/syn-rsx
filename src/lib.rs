@@ -1,9 +1,11 @@
 //! [`syn`]-powered parser for JSX-like [`TokenStream`]s. The parsed result is a
-//! nested [`Node`] structure modelled after the browser DOM.
+//! nested [`Node`] structure, similar to the browser DOM. The `node_value` is
+//! an [`syn::Expr`].
 //!
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 //! [`Node`]: struct.Node.html
+//! [`syn::Expr`]: https://docs.rs/syn/latest/syn/enum.Expr.html
 //!
 //! ```
 //! use syn_rsx::parse2;
@@ -12,12 +14,13 @@
 //! let tokens = quote! {
 //!     <div>
 //!         <div>"hello"</div>
-//!         <div>{world}</div>
+//!         <world />
 //!     </div>
 //! };
 //!
 //! let nodes = parse2(tokens, None).unwrap();
-//! assert_eq!(nodes.get(0).unwrap().child_nodes.len(), 2);
+//! assert_eq!(nodes[0].child_nodes.len(), 2);
+//! assert_eq!(nodes[0].child_nodes[1].node_name, "world");
 //! ```
 
 extern crate proc_macro;
