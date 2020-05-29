@@ -1,0 +1,20 @@
+[package]
+name = "syn-rsx"
+description = "syn-powered parser for JSX-like TokenStreams"
+version = "0.1.0"
+authors = ["stoically <stoically@protonmail.com>"]
+keywords = ["syn", "jsx", "rsx"]
+edition = "2018"
+repository = "https://github.com/stoically/syn-rsx"
+license = "MIT"
+
+[dependencies]
+proc-macro2 = "1.0.17"
+syn = { version = "1.0.27", features = ["full"] }
+
+[dev-dependencies]
+quote = "1.0.6"
+
+[features]
+default = []
+syn-extra-traits = ["syn/extra-traits"]
