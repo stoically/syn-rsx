@@ -1,6 +1,6 @@
 use syn::{Expr, Lit};
 
-/// Node in the DOM tree
+/// Node in the tree
 #[cfg_attr(feature = "syn-extra-traits", derive(Debug))]
 pub struct Node {
     pub node_name: String,
@@ -11,6 +11,7 @@ pub struct Node {
 }
 
 impl Node {
+    /// Returns an `String` if the `node_value` is an `Lit::Str` expression
     pub fn get_value_as_string(&self) -> Option<String> {
         match self.node_value.as_ref().unwrap() {
             Expr::Lit(expr) => match &expr.lit {
@@ -22,21 +23,21 @@ impl Node {
     }
 }
 
+/// Type of the Node
 #[cfg_attr(feature = "syn-extra-traits", derive(Debug))]
 pub enum NodeType {
+    /// An HTMLElement tag, with optional childs and attributes.
+    /// Potentially selfclosing. Any tag name is valid.
     Element,
-    Attribute,
-    Text,
-}
 
-impl Default for Node {
-    fn default() -> Node {
-        Node {
-            node_name: "#text".to_owned(),
-            node_value: None,
-            node_type: NodeType::Text,
-            attributes: vec![],
-            child_nodes: vec![],
-        }
-    }
+    /// Attributes of opening tags. Every attribute is itself a node.
+    Attribute,
+
+    /// Quoted text. It's planned to support unquoted text as well
+    /// using span start and end, but that currently only works
+    /// with nightly rust
+    Text,
+
+    /// Arbitrary rust code in braced `{}` blocks
+    Block,
 }

@@ -3,7 +3,6 @@ use syn::{
     braced,
     ext::IdentExt,
     parse::{ParseStream, Parser as _},
-    token::Brace,
     Expr, ExprLit, Ident, Result, Token,
 };
 
@@ -51,6 +50,8 @@ impl Parser {
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut node = if self.text(&input.fork()).is_ok() {
             self.text(input)
+        } else if self.block(&input.fork()).is_ok() {
+            self.block(input)
         } else {
             self.element(input)
         }?;
@@ -206,19 +207,26 @@ impl Parser {
     }
 
     fn text(&self, input: ParseStream) -> Result<Node> {
-        let value = if input.peek(Brace) {
-            // special-case {expr} because `Group` has no `Parse` implementation
-            let group;
-            braced!(group in input);
-            group.parse()?
-        } else {
-            input.parse::<ExprLit>()?.into()
-        };
+        let value = input.parse::<ExprLit>()?.into();
 
         Ok(Node {
-            node_name: "".to_owned(),
+            node_name: "#text".to_owned(),
             node_value: Some(value),
             node_type: NodeType::Text,
+            attributes: vec![],
+            child_nodes: vec![],
+        })
+    }
+
+    fn block(&self, input: ParseStream) -> Result<Node> {
+        let group;
+        braced!(group in input);
+        let value = group.parse()?;
+
+        Ok(Node {
+            node_name: "#block".to_owned(),
+            node_value: Some(value),
+            node_type: NodeType::Block,
             attributes: vec![],
             child_nodes: vec![],
         })

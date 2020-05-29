@@ -36,7 +36,7 @@ mod parser;
 pub use node::{Node, NodeType};
 pub use parser::{Parser, ParserConfig};
 
-/// Parse the given `proc-macro::TokenStream` into `Node`s
+/// Parse the given `proc-macro::TokenStream` into an `Node` tree
 pub fn parse(tokens: proc_macro::TokenStream, config: Option<ParserConfig>) -> Result<Vec<Node>> {
     let parser = move |input: ParseStream| {
         let config = config.unwrap_or_else(|| ParserConfig::default());
@@ -46,7 +46,7 @@ pub fn parse(tokens: proc_macro::TokenStream, config: Option<ParserConfig>) -> R
     parser.parse(tokens)
 }
 
-/// Parse the given `proc-macro2::TokenStream` into `Node`s
+/// Parse the given `proc-macro2::TokenStream` into an `Node` tree
 pub fn parse2(tokens: proc_macro2::TokenStream, config: Option<ParserConfig>) -> Result<Vec<Node>> {
     let parser = move |input: ParseStream| {
         let config = config.unwrap_or_else(|| ParserConfig::default());
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_braced_expr_as_text_node() {
+    fn test_braced_expr_as_block_node() {
         let tokens = quote::quote! {
             <div>{hello}</div>
         };
