@@ -1,12 +1,13 @@
-//! [`syn`]-powered parser for JSX-like `TokenStream`s. The parsed result is a
+//! [`syn`]-powered parser for JSX-like [`TokenStream`]s. The parsed result is a
 //! nested [`Node`] structure modelled after the browser DOM.
 //!
 //! [`syn`]: /syn
+//! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 //! [`Node`]: struct.Node.html
 //!
 //! ```
-//! use quote::quote;
 //! use syn_rsx::parse2;
+//! use quote::quote;
 //!
 //! let tokens = quote! {
 //!     <div>
@@ -29,7 +30,7 @@ use syn::{
 mod node;
 mod parser;
 
-pub use node::{Expr, Node, NodeType};
+pub use node::{Node, NodeType};
 pub use parser::{Parser, ParserConfig};
 
 /// Parse the given `proc-macro::TokenStream` into `Node`s

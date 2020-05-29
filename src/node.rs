@@ -1,5 +1,6 @@
 pub use syn::{Expr, Lit};
 
+/// Node in the DOM tree
 #[cfg_attr(feature = "syn-extra-traits", derive(Debug))]
 pub struct Node {
     pub node_name: String,

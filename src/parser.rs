@@ -15,7 +15,7 @@ pub struct Tag {
     pub selfclosing: bool,
 }
 
-/// Configures the parsers behavior
+/// Configures the `Parser` behavior
 pub struct ParserConfig {
     /// Whether the returned node tree should be nested or flat
     pub flatten: bool,
@@ -27,7 +27,7 @@ impl Default for ParserConfig {
     }
 }
 
-/// The syn-powered rsx parser
+/// RSX Parser
 pub struct Parser {
     config: ParserConfig,
 }
