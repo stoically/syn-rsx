@@ -6,6 +6,7 @@ authors = ["stoically <stoically@protonmail.com>"]
 keywords = ["syn", "jsx", "rsx"]
 edition = "2018"
 repository = "https://github.com/stoically/syn-rsx"
+readme = "README.md"
 license = "MIT"
 
 [dependencies]
