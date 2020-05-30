@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_braced_expr_as_block_node() {
+    fn test_block_node() {
         let tokens = quote::quote! {
             <div>{hello}</div>
         };

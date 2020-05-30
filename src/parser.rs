@@ -1,17 +1,16 @@
 use proc_macro2::{TokenStream, TokenTree};
 use syn::{
-    braced,
     ext::IdentExt,
     parse::{ParseStream, Parser as _},
-    Expr, ExprLit, Ident, Result, Token,
+    Expr, ExprBlock, ExprLit, Ident, Result, Token,
 };
 
 use crate::node::*;
 
-pub struct Tag {
-    pub ident: Ident,
-    pub attributes: Vec<Node>,
-    pub selfclosing: bool,
+struct Tag {
+    ident: Ident,
+    attributes: Vec<Node>,
+    selfclosing: bool,
 }
 
 /// Configures the `Parser` behavior
@@ -71,7 +70,7 @@ impl Parser {
     }
 
     fn element(&self, input: ParseStream) -> Result<Node> {
-        if let Ok(next_close_ident) = self.next_close_ident(&input.fork()) {
+        if let Ok(next_close_ident) = self.tag_next_close_ident(&input.fork()) {
             return Err(syn::Error::new(
                 next_close_ident.span(),
                 "close tag has no corresponding open tag",
@@ -91,7 +90,7 @@ impl Parser {
                 child_nodes.append(&mut self.node(input)?);
             }
 
-            self.next_close_ident(input)?;
+            self.tag_next_close_ident(input)?;
         }
 
         Ok(Node {
@@ -112,7 +111,7 @@ impl Parser {
             ));
         }
 
-        if let Ok(next_close_ident) = self.next_close_ident(&input.fork()) {
+        if let Ok(next_close_ident) = self.tag_next_close_ident(&input.fork()) {
             if tag_open.ident == next_close_ident {
                 // if the next token is a matching close tag then there are no child nodes
                 return Ok(false);
@@ -172,7 +171,7 @@ impl Parser {
         let mut attributes: Vec<TokenTree> = vec![];
 
         let selfclosing = loop {
-            if let Ok(selfclosing) = self.tag_closed(input) {
+            if let Ok(selfclosing) = self.tag_open_end(input) {
                 break selfclosing;
             }
 
@@ -190,14 +189,14 @@ impl Parser {
         })
     }
 
-    fn tag_closed(&self, input: ParseStream) -> Result<bool> {
+    fn tag_open_end(&self, input: ParseStream) -> Result<bool> {
         let selfclosing = input.parse::<Option<Token![/]>>()?.is_some();
         input.parse::<Token![>]>()?;
 
         Ok(selfclosing)
     }
 
-    fn next_close_ident(&self, input: ParseStream) -> Result<Ident> {
+    fn tag_next_close_ident(&self, input: ParseStream) -> Result<Ident> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
         let ident = input.parse()?;
@@ -207,11 +206,11 @@ impl Parser {
     }
 
     fn text(&self, input: ParseStream) -> Result<Node> {
-        let value = input.parse::<ExprLit>()?.into();
+        let text = input.parse::<ExprLit>()?.into();
 
         Ok(Node {
             node_name: "#text".to_owned(),
-            node_value: Some(value),
+            node_value: Some(text),
             node_type: NodeType::Text,
             attributes: vec![],
             child_nodes: vec![],
@@ -219,13 +218,30 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let group;
-        braced!(group in input);
-        let value = group.parse()?;
+        let block = input
+            .step(|cursor| {
+                if let Some((tt, next)) = cursor.token_tree() {
+                    match &tt {
+                        TokenTree::Group(_) => {
+                            let block: TokenStream = vec![tt].into_iter().collect();
+                            let parser = move |input: ParseStream| input.parse();
+                            let block: ExprBlock = parser.parse2(block)?;
+
+                            // advance cursor
+                            next.token_tree();
+
+                            return Ok((block, next));
+                        }
+                        _ => (),
+                    };
+                };
+                Err(cursor.error("expected group"))
+            })?
+            .into();
 
         Ok(Node {
             node_name: "#block".to_owned(),
-            node_value: Some(value),
+            node_value: Some(block),
             node_type: NodeType::Block,
             attributes: vec![],
             child_nodes: vec![],
