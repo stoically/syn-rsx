@@ -71,9 +71,9 @@ impl Parser {
     }
 
     fn element(&self, input: ParseStream) -> Result<Node> {
-        if let Ok(next_close_ident) = self.tag_next_close_ident(&input.fork()) {
+        if let Ok(tag_close_ident) = self.tag_close(&input.fork()) {
             return Err(syn::Error::new(
-                next_close_ident.span(),
+                tag_close_ident.span(),
                 "close tag has no corresponding open tag",
             ));
         }
@@ -81,7 +81,6 @@ impl Parser {
         let tag_open = self.tag_open(input)?;
 
         let mut child_nodes = vec![];
-
         if !tag_open.selfclosing {
             loop {
                 if !self.has_child_nodes(&tag_open, &input)? {
@@ -91,7 +90,7 @@ impl Parser {
                 child_nodes.append(&mut self.node(input)?);
             }
 
-            self.tag_next_close_ident(input)?;
+            self.tag_close(input)?;
         }
 
         Ok(Node {
@@ -112,14 +111,14 @@ impl Parser {
             ));
         }
 
-        if let Ok(next_close_ident) = self.tag_next_close_ident(&input.fork()) {
-            if tag_open.ident == next_close_ident {
+        if let Ok(tag_close_ident) = self.tag_close(&input.fork()) {
+            if tag_open.ident == tag_close_ident {
                 // if the next token is a matching close tag then there are no child nodes
                 return Ok(false);
             } else {
                 // if the next token is a closing tag with a different name it's an invalid tree
                 return Err(syn::Error::new(
-                    next_close_ident.span(),
+                    tag_close_ident.span(),
                     "close tag has no corresponding open tag",
                 ));
             }
@@ -170,7 +169,6 @@ impl Parser {
         let ident = input.parse()?;
 
         let mut attributes: Vec<TokenTree> = vec![];
-
         let selfclosing = loop {
             if let Ok(selfclosing) = self.tag_open_end(input) {
                 break selfclosing;
@@ -179,9 +177,8 @@ impl Parser {
             attributes.push(input.parse()?);
         };
 
-        let attributes: TokenStream = attributes.into_iter().collect();
         let parser = move |input: ParseStream| self.attributes(input);
-        let attributes = parser.parse2(attributes)?;
+        let attributes = parser.parse2(attributes.into_iter().collect())?;
 
         Ok(Tag {
             ident,
@@ -197,7 +194,7 @@ impl Parser {
         Ok(selfclosing)
     }
 
-    fn tag_next_close_ident(&self, input: ParseStream) -> Result<Ident> {
+    fn tag_close(&self, input: ParseStream) -> Result<Ident> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
         let ident = input.parse()?;
@@ -222,9 +219,8 @@ impl Parser {
         let block = input.step(|cursor| {
             if let Some((tt, next)) = cursor.token_tree() {
                 if let TokenTree::Group(_) = tt {
-                    let block: TokenStream = iter::once(tt).collect();
                     let parser = move |input: ParseStream| input.parse();
-                    let block: ExprBlock = parser.parse2(block)?;
+                    let block: ExprBlock = parser.parse2(iter::once(tt).collect())?;
 
                     // advance cursor
                     next.token_tree();
