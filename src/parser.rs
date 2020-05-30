@@ -218,27 +218,25 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let block = input
-            .step(|cursor| {
-                if let Some((tt, next)) = cursor.token_tree() {
-                    if let TokenTree::Group(_) = tt {
-                        let block: TokenStream = vec![tt].into_iter().collect();
-                        let parser = move |input: ParseStream| input.parse();
-                        let block: ExprBlock = parser.parse2(block)?;
+        let block = input.step(|cursor| {
+            if let Some((tt, next)) = cursor.token_tree() {
+                if let TokenTree::Group(_) = tt {
+                    let block: TokenStream = vec![tt].into_iter().collect();
+                    let parser = move |input: ParseStream| input.parse();
+                    let block: ExprBlock = parser.parse2(block)?;
 
-                        // advance cursor
-                        next.token_tree();
+                    // advance cursor
+                    next.token_tree();
 
-                        return Ok((block, next));
-                    }
+                    return Ok((block, next));
                 }
-                Err(cursor.error("expected group"))
-            })?
-            .into();
+            }
+            Err(cursor.error("expected block"))
+        })?;
 
         Ok(Node {
             node_name: "#block".to_owned(),
-            node_value: Some(block),
+            node_value: Some(block.into()),
             node_type: NodeType::Block,
             attributes: vec![],
             child_nodes: vec![],
