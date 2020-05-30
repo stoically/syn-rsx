@@ -133,7 +133,7 @@ impl Parser {
             return Ok(nodes);
         }
 
-        while let Ok(_) = self.attribute(&input.fork()) {
+        while self.attribute(&input.fork()).is_ok() {
             let (key, value) = self.attribute(input)?;
 
             nodes.push(Node {
@@ -221,20 +221,17 @@ impl Parser {
         let block = input
             .step(|cursor| {
                 if let Some((tt, next)) = cursor.token_tree() {
-                    match &tt {
-                        TokenTree::Group(_) => {
-                            let block: TokenStream = vec![tt].into_iter().collect();
-                            let parser = move |input: ParseStream| input.parse();
-                            let block: ExprBlock = parser.parse2(block)?;
+                    if let TokenTree::Group(_) = tt {
+                        let block: TokenStream = vec![tt].into_iter().collect();
+                        let parser = move |input: ParseStream| input.parse();
+                        let block: ExprBlock = parser.parse2(block)?;
 
-                            // advance cursor
-                            next.token_tree();
+                        // advance cursor
+                        next.token_tree();
 
-                            return Ok((block, next));
-                        }
-                        _ => (),
-                    };
-                };
+                        return Ok((block, next));
+                    }
+                }
                 Err(cursor.error("expected group"))
             })?
             .into();

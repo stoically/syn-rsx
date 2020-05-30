@@ -39,7 +39,7 @@ pub use parser::{Parser, ParserConfig};
 /// Parse the given `proc-macro::TokenStream` into an `Node` tree
 pub fn parse(tokens: proc_macro::TokenStream, config: Option<ParserConfig>) -> Result<Vec<Node>> {
     let parser = move |input: ParseStream| {
-        let config = config.unwrap_or_else(|| ParserConfig::default());
+        let config = config.unwrap_or_else(ParserConfig::default);
         Parser::new(config).parse(input)
     };
 
@@ -49,7 +49,7 @@ pub fn parse(tokens: proc_macro::TokenStream, config: Option<ParserConfig>) -> R
 /// Parse the given `proc-macro2::TokenStream` into an `Node` tree
 pub fn parse2(tokens: proc_macro2::TokenStream, config: Option<ParserConfig>) -> Result<Vec<Node>> {
     let parser = move |input: ParseStream| {
-        let config = config.unwrap_or_else(|| ParserConfig::default());
+        let config = config.unwrap_or_else(ParserConfig::default);
         Parser::new(config).parse(input)
     };
 
