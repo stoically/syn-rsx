@@ -1,4 +1,5 @@
 use proc_macro2::{TokenStream, TokenTree};
+use std::iter;
 use syn::{
     ext::IdentExt,
     parse::{ParseStream, Parser as _},
@@ -221,7 +222,7 @@ impl Parser {
         let block = input.step(|cursor| {
             if let Some((tt, next)) = cursor.token_tree() {
                 if let TokenTree::Group(_) = tt {
-                    let block: TokenStream = vec![tt].into_iter().collect();
+                    let block: TokenStream = iter::once(tt).collect();
                     let parser = move |input: ParseStream| input.parse();
                     let block: ExprBlock = parser.parse2(block)?;
 
