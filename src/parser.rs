@@ -1,9 +1,9 @@
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::TokenTree;
 use std::iter;
 use syn::{
     ext::IdentExt,
     parse::{ParseStream, Parser as _},
-    Expr, ExprBlock, ExprLit, Ident, Result, Token,
+    token, Expr, ExprBlock, ExprLit, Ident, Result, Token,
 };
 
 use crate::node::*;
@@ -127,43 +127,6 @@ impl Parser {
         Ok(true)
     }
 
-    fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
-        let mut nodes = vec![];
-        if input.is_empty() {
-            return Ok(nodes);
-        }
-
-        while self.attribute(&input.fork()).is_ok() {
-            let (key, value) = self.attribute(input)?;
-
-            nodes.push(Node {
-                node_name: key,
-                node_type: NodeType::Attribute,
-                node_value: value,
-                attributes: vec![],
-                child_nodes: vec![],
-            });
-
-            if input.is_empty() {
-                break;
-            }
-        }
-
-        Ok(nodes)
-    }
-
-    fn attribute(&self, input: ParseStream) -> Result<(String, Option<Expr>)> {
-        let key = input.call(Ident::parse_any)?.to_string();
-        let eq = input.parse::<Option<Token![=]>>()?;
-        let value = if eq.is_some() {
-            Some(input.parse()?)
-        } else {
-            None
-        };
-
-        Ok((key, value))
-    }
-
     fn tag_open(&self, input: ParseStream) -> Result<Tag> {
         input.parse::<Token![<]>()?;
         let ident = input.parse()?;
@@ -203,6 +166,47 @@ impl Parser {
         Ok(ident)
     }
 
+    fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
+        let mut nodes = vec![];
+        if input.is_empty() {
+            return Ok(nodes);
+        }
+
+        while self.attribute(&input.fork()).is_ok() {
+            let (key, value) = self.attribute(input)?;
+
+            nodes.push(Node {
+                node_name: key,
+                node_type: NodeType::Attribute,
+                node_value: value,
+                attributes: vec![],
+                child_nodes: vec![],
+            });
+
+            if input.is_empty() {
+                break;
+            }
+        }
+
+        Ok(nodes)
+    }
+
+    fn attribute(&self, input: ParseStream) -> Result<(String, Option<Expr>)> {
+        let key = input.call(Ident::parse_any)?.to_string();
+        let eq = input.parse::<Option<Token![=]>>()?;
+        let value = if eq.is_some() {
+            if input.peek(token::Brace) {
+                Some(self.block_expr(input)?)
+            } else {
+                Some(input.parse()?)
+            }
+        } else {
+            None
+        };
+
+        Ok((key, value))
+    }
+
     fn text(&self, input: ParseStream) -> Result<Node> {
         let text = input.parse::<ExprLit>()?.into();
 
@@ -216,27 +220,22 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let block = input.step(|cursor| {
-            if let Some((tt, next)) = cursor.token_tree() {
-                if let TokenTree::Group(_) = tt {
-                    let parser = move |input: ParseStream| input.parse();
-                    let block: ExprBlock = parser.parse2(iter::once(tt).collect())?;
-
-                    // advance cursor
-                    next.token_tree();
-
-                    return Ok((block, next));
-                }
-            }
-            Err(cursor.error("expected block"))
-        })?;
+        let block = self.block_expr(input)?;
 
         Ok(Node {
             node_name: "#block".to_owned(),
-            node_value: Some(block.into()),
+            node_value: Some(block),
             node_type: NodeType::Block,
             attributes: vec![],
             child_nodes: vec![],
         })
+    }
+
+    fn block_expr(&self, input: ParseStream) -> Result<Expr> {
+        let parser = move |input: ParseStream| input.parse();
+        let group: TokenTree = input.parse()?;
+        let block: ExprBlock = parser.parse2(iter::once(group).collect())?;
+
+        Ok(block.into())
     }
 }
