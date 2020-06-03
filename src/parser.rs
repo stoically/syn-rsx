@@ -234,7 +234,7 @@ impl Parser {
     // Modified version of `Path::parse_mod_style` to `Ident::peek_any`
     // https://docs.rs/syn/1.0.30/src/syn/path.rs.html#388-418
     // TODO: PR upstream
-    pub fn parse_any_path(&self, input: ParseStream) -> Result<Path> {
+    fn parse_any_path(&self, input: ParseStream) -> Result<Path> {
         Ok(Path {
             leading_colon: input.parse()?,
             segments: {
