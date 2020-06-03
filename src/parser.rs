@@ -64,6 +64,42 @@ impl Parser {
         Ok(nodes)
     }
 
+    fn text(&self, input: ParseStream) -> Result<Node> {
+        let fork = input.fork();
+        let text = fork.parse::<ExprLit>()?.into();
+        input.advance_to(&fork);
+
+        Ok(Node {
+            name: None,
+            value: Some(text),
+            node_type: NodeType::Text,
+            attributes: vec![],
+            childs: vec![],
+        })
+    }
+
+    fn block(&self, input: ParseStream) -> Result<Node> {
+        let fork = input.fork();
+        let block = self.block_expr(&fork)?;
+        input.advance_to(&fork);
+
+        Ok(Node {
+            name: None,
+            value: Some(block),
+            node_type: NodeType::Block,
+            attributes: vec![],
+            childs: vec![],
+        })
+    }
+
+    fn block_expr(&self, input: ParseStream) -> Result<Expr> {
+        let parser = move |input: ParseStream| input.parse();
+        let group: TokenTree = input.parse()?;
+        let block: ExprBlock = parser.parse2(iter::once(group).collect())?;
+
+        Ok(block.into())
+    }
+
     fn element(&self, input: ParseStream) -> Result<Node> {
         let fork = input.fork();
         if let Ok(_) = self.tag_close(&input.fork()) {
@@ -191,42 +227,6 @@ impl Parser {
         };
 
         Ok((key, value))
-    }
-
-    fn text(&self, input: ParseStream) -> Result<Node> {
-        let fork = input.fork();
-        let text = fork.parse::<ExprLit>()?.into();
-        input.advance_to(&fork);
-
-        Ok(Node {
-            name: None,
-            value: Some(text),
-            node_type: NodeType::Text,
-            attributes: vec![],
-            childs: vec![],
-        })
-    }
-
-    fn block(&self, input: ParseStream) -> Result<Node> {
-        let fork = input.fork();
-        let block = self.block_expr(&fork)?;
-        input.advance_to(&fork);
-
-        Ok(Node {
-            name: None,
-            value: Some(block),
-            node_type: NodeType::Block,
-            attributes: vec![],
-            childs: vec![],
-        })
-    }
-
-    fn block_expr(&self, input: ParseStream) -> Result<Expr> {
-        let parser = move |input: ParseStream| input.parse();
-        let group: TokenTree = input.parse()?;
-        let block: ExprBlock = parser.parse2(iter::once(group).collect())?;
-
-        Ok(block.into())
     }
 
     // Modified version of `Path::parse_mod_style` that uses `Ident::peek_any`
