@@ -20,7 +20,7 @@
 //!
 //! let nodes = parse2(tokens, None).unwrap();
 //! assert_eq!(nodes[0].child_nodes.len(), 2);
-//! assert_eq!(nodes[0].child_nodes[1].node_name, "world");
+//! assert_eq!(nodes[0].child_nodes[1].node_name_as_string().unwrap(), "world");
 //! ```
 
 extern crate proc_macro;
@@ -66,8 +66,8 @@ mod tests {
         let tokens = quote::quote! {
             <foo></foo>
         };
-        let node = parse2(tokens, None).unwrap();
-        assert_eq!(node[0].node_name, "foo");
+        let nodes = parse2(tokens, None).unwrap();
+        assert_eq!(nodes[0].node_name_as_string().unwrap(), "foo");
     }
 
     #[test]
@@ -75,9 +75,9 @@ mod tests {
         let tokens = quote::quote! {
             <foo bar="moo" baz="42"></foo>
         };
-        let node = parse2(tokens, None).unwrap();
+        let nodes = parse2(tokens, None).unwrap();
 
-        let attribute = &node[0].attributes[0];
+        let attribute = &nodes[0].attributes[0];
         let attribute_value = match attribute.node_value.as_ref().unwrap() {
             Expr::Lit(expr) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
@@ -87,7 +87,7 @@ mod tests {
         }
         .unwrap();
 
-        assert_eq!(attribute.node_name, "bar");
+        assert_eq!(attribute.node_name_as_string().unwrap(), "bar");
         assert_eq!(attribute_value, "moo");
     }
 
@@ -96,9 +96,9 @@ mod tests {
         let tokens = quote::quote! {
             <foo>"bar"</foo>
         };
-        let node = parse2(tokens, None).unwrap();
+        let nodes = parse2(tokens, None).unwrap();
 
-        let node_value = match node[0].child_nodes[0].node_value.as_ref().unwrap() {
+        let node_value = match nodes[0].child_nodes[0].node_value.as_ref().unwrap() {
             Expr::Lit(expr) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
                 _ => None,
@@ -115,10 +115,13 @@ mod tests {
         let tokens = quote::quote! {
             <input type="foo" />
         };
-        let node = parse2(tokens, None).unwrap();
+        let nodes = parse2(tokens, None).unwrap();
 
-        assert_eq!(node[0].node_name, "input");
-        assert_eq!(node[0].attributes[0].node_name, "type");
+        assert_eq!(nodes[0].node_name_as_string().unwrap(), "input");
+        assert_eq!(
+            nodes[0].attributes[0].node_name_as_string().unwrap(),
+            "type"
+        );
     }
 
     #[test]
@@ -126,9 +129,9 @@ mod tests {
         let tokens = quote::quote! {
             <div>{hello}</div>
         };
-        let node = parse2(tokens, None).unwrap();
+        let nodes = parse2(tokens, None).unwrap();
 
-        assert_eq!(node[0].child_nodes.len(), 1);
+        assert_eq!(nodes[0].child_nodes.len(), 1);
     }
 
     #[test]
@@ -147,5 +150,15 @@ mod tests {
 
         let nodes = parse2(tokens, Some(config)).unwrap();
         assert_eq!(nodes.len(), 7);
+    }
+
+    #[test]
+    fn test_path_as_tag_name() {
+        let tokens = quote::quote! {
+            <some::path />
+        };
+
+        let nodes = parse2(tokens, None).unwrap();
+        assert_eq!(nodes[0].node_name.as_ref().unwrap().segments.len(), 2);
     }
 }

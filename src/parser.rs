@@ -3,13 +3,14 @@ use std::iter;
 use syn::{
     ext::IdentExt,
     parse::{ParseStream, Parser as _},
-    token, Expr, ExprBlock, ExprLit, Ident, Result, Token,
+    punctuated::Punctuated,
+    token, Expr, ExprBlock, ExprLit, Ident, Path, PathSegment, Result, Token,
 };
 
 use crate::node::*;
 
 struct Tag {
-    ident: Ident,
+    name: Path,
     attributes: Vec<Node>,
     selfclosing: bool,
 }
@@ -71,11 +72,8 @@ impl Parser {
     }
 
     fn element(&self, input: ParseStream) -> Result<Node> {
-        if let Ok(tag_close_ident) = self.tag_close(&input.fork()) {
-            return Err(syn::Error::new(
-                tag_close_ident.span(),
-                "close tag has no corresponding open tag",
-            ));
+        if let Ok(_) = self.tag_close(&input.fork()) {
+            return Err(input.error("close tag has no corresponding open tag"));
         }
 
         let tag_open = self.tag_open(input)?;
@@ -94,7 +92,7 @@ impl Parser {
         }
 
         Ok(Node {
-            node_name: tag_open.ident.to_string(),
+            node_name: Some(tag_open.name),
             node_value: None,
             node_type: NodeType::Element,
             attributes: tag_open.attributes,
@@ -105,22 +103,16 @@ impl Parser {
     fn has_child_nodes(&self, tag_open: &Tag, input: &ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
-            return Err(syn::Error::new(
-                tag_open.ident.span(),
-                "open tag has no corresponding close tag",
-            ));
+            return Err(input.error("open tag has no corresponding close tag"));
         }
 
         if let Ok(tag_close_ident) = self.tag_close(&input.fork()) {
-            if tag_open.ident == tag_close_ident {
+            if tag_open.name == tag_close_ident {
                 // if the next token is a matching close tag then there are no child nodes
                 return Ok(false);
             } else {
                 // if the next token is a closing tag with a different name it's an invalid tree
-                return Err(syn::Error::new(
-                    tag_close_ident.span(),
-                    "close tag has no corresponding open tag",
-                ));
+                return Err(input.error("close tag has no corresponding open tag"));
             }
         }
 
@@ -129,7 +121,7 @@ impl Parser {
 
     fn tag_open(&self, input: ParseStream) -> Result<Tag> {
         input.parse::<Token![<]>()?;
-        let ident = input.parse()?;
+        let name = self.parse_any_path(input)?;
 
         let mut attributes: Vec<TokenTree> = vec![];
         let selfclosing = loop {
@@ -144,7 +136,7 @@ impl Parser {
         let attributes = parser.parse2(attributes.into_iter().collect())?;
 
         Ok(Tag {
-            ident,
+            name,
             attributes,
             selfclosing,
         })
@@ -157,13 +149,13 @@ impl Parser {
         Ok(selfclosing)
     }
 
-    fn tag_close(&self, input: ParseStream) -> Result<Ident> {
+    fn tag_close(&self, input: ParseStream) -> Result<Path> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
-        let ident = input.parse()?;
+        let name = self.parse_any_path(input)?;
         input.parse::<Token![>]>()?;
 
-        Ok(ident)
+        Ok(name)
     }
 
     fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
@@ -176,7 +168,7 @@ impl Parser {
             let (key, value) = self.attribute(input)?;
 
             nodes.push(Node {
-                node_name: key,
+                node_name: Some(key),
                 node_type: NodeType::Attribute,
                 node_value: value,
                 attributes: vec![],
@@ -191,8 +183,8 @@ impl Parser {
         Ok(nodes)
     }
 
-    fn attribute(&self, input: ParseStream) -> Result<(String, Option<Expr>)> {
-        let key = input.call(Ident::parse_any)?.to_string();
+    fn attribute(&self, input: ParseStream) -> Result<(Path, Option<Expr>)> {
+        let key = self.parse_any_path(input)?;
         let eq = input.parse::<Option<Token![=]>>()?;
         let value = if eq.is_some() {
             if input.peek(token::Brace) {
@@ -211,7 +203,7 @@ impl Parser {
         let text = input.parse::<ExprLit>()?.into();
 
         Ok(Node {
-            node_name: "#text".to_owned(),
+            node_name: None,
             node_value: Some(text),
             node_type: NodeType::Text,
             attributes: vec![],
@@ -223,7 +215,7 @@ impl Parser {
         let block = self.block_expr(input)?;
 
         Ok(Node {
-            node_name: "#block".to_owned(),
+            node_name: None,
             node_value: Some(block),
             node_type: NodeType::Block,
             attributes: vec![],
@@ -237,5 +229,40 @@ impl Parser {
         let block: ExprBlock = parser.parse2(iter::once(group).collect())?;
 
         Ok(block.into())
+    }
+
+    // Modified version of `Path::parse_mod_style` to `Ident::peek_any`
+    // https://docs.rs/syn/1.0.30/src/syn/path.rs.html#388-418
+    // TODO: PR upstream
+    pub fn parse_any_path(&self, input: ParseStream) -> Result<Path> {
+        Ok(Path {
+            leading_colon: input.parse()?,
+            segments: {
+                let mut segments = Punctuated::new();
+                loop {
+                    if !input.peek(Ident::peek_any)
+                        && !input.peek(Token![super])
+                        && !input.peek(Token![self])
+                        && !input.peek(Token![Self])
+                        && !input.peek(Token![crate])
+                    {
+                        break;
+                    }
+                    let ident = Ident::parse_any(input)?;
+                    segments.push_value(PathSegment::from(ident));
+                    if !input.peek(Token![::]) {
+                        break;
+                    }
+                    let punct = input.parse()?;
+                    segments.push_punct(punct);
+                }
+                if segments.is_empty() {
+                    return Err(input.error("expected path"));
+                } else if segments.trailing_punct() {
+                    return Err(input.error("expected path segment"));
+                }
+                segments
+            },
+        })
     }
 }
