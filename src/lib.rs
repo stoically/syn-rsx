@@ -8,7 +8,6 @@
 //!
 //! ```
 //! use quote::quote;
-//! use syn::Expr;
 //! use syn_rsx::parse2;
 //!
 //! let tokens = quote! {
