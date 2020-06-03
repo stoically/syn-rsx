@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "syn-rsx"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "proc-macro2",
  "quote",
