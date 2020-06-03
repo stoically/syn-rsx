@@ -2,7 +2,7 @@ use proc_macro2::TokenTree;
 use std::iter;
 use syn::{
     ext::IdentExt,
-    parse::{ParseStream, Parser as _},
+    parse::{discouraged::Speculative, ParseStream, Parser as _},
     punctuated::Punctuated,
     token, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
@@ -17,7 +17,7 @@ struct Tag {
 
 /// Configures the `Parser` behavior
 pub struct ParserConfig {
-    /// Whether the returned node tree should be nested or flat
+    /// Whether the returned node tree should be nested or flat. Defaults to `false`
     pub flatten: bool,
 }
 
@@ -49,58 +49,52 @@ impl Parser {
     }
 
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
-        let mut node = if self.text(&input.fork()).is_ok() {
-            self.text(input)
-        } else if self.block(&input.fork()).is_ok() {
-            self.block(input)
-        } else {
-            self.element(input)
-        }?;
+        let node = self
+            .text(input)
+            .or_else(|_| self.block(input))
+            .or_else(|_| self.element(input))?;
 
-        let nodes = if self.config.flatten {
-            // TODO there has to be a more elegant way to do this
+        let mut nodes = vec![node];
+        if self.config.flatten {
             let mut childs = vec![];
-            childs.append(&mut node.childs);
-            let mut nodes = vec![node];
+            childs.append(&mut nodes[0].childs);
             nodes.append(&mut childs);
-            nodes
-        } else {
-            vec![node]
-        };
+        }
 
         Ok(nodes)
     }
 
     fn element(&self, input: ParseStream) -> Result<Node> {
+        let fork = input.fork();
         if let Ok(_) = self.tag_close(&input.fork()) {
-            return Err(input.error("close tag has no corresponding open tag"));
+            return Err(fork.error("close tag has no corresponding open tag"));
         }
-
-        let tag_open = self.tag_open(input)?;
+        let tag_open = self.tag_open(&fork)?;
 
         let mut childs = vec![];
         if !tag_open.selfclosing {
             loop {
-                if !self.has_childs(&tag_open, &input)? {
+                if !self.has_childs(&tag_open, &fork)? {
                     break;
                 }
 
-                childs.append(&mut self.node(input)?);
+                childs.append(&mut self.node(&fork)?);
             }
 
-            self.tag_close(input)?;
+            self.tag_close(&fork)?;
         }
+        input.advance_to(&fork);
 
         Ok(Node {
             name: Some(tag_open.name),
             value: None,
             node_type: NodeType::Element,
             attributes: tag_open.attributes,
-            childs: childs,
+            childs,
         })
     }
 
-    fn has_childs(&self, tag_open: &Tag, input: &ParseStream) -> Result<bool> {
+    fn has_childs(&self, tag_open: &Tag, input: ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
             return Err(input.error("open tag has no corresponding close tag"));
@@ -170,7 +164,7 @@ impl Parser {
             nodes.push(Node {
                 name: Some(key),
                 node_type: NodeType::Attribute,
-                value: value,
+                value,
                 attributes: vec![],
                 childs: vec![],
             });
@@ -200,7 +194,9 @@ impl Parser {
     }
 
     fn text(&self, input: ParseStream) -> Result<Node> {
-        let text = input.parse::<ExprLit>()?.into();
+        let fork = input.fork();
+        let text = fork.parse::<ExprLit>()?.into();
+        input.advance_to(&fork);
 
         Ok(Node {
             name: None,
@@ -212,7 +208,9 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let block = self.block_expr(input)?;
+        let fork = input.fork();
+        let block = self.block_expr(&fork)?;
+        input.advance_to(&fork);
 
         Ok(Node {
             name: None,
