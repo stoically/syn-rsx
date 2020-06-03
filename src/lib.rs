@@ -1,6 +1,5 @@
 //! [`syn`]-powered parser for JSX-like [`TokenStream`]s. The parsed result is a
-//! nested [`Node`] structure, similar to the browser DOM. The `node_value` is
-//! an [`syn::Expr`].
+//! nested [`Node`] structure, similar to the browser DOM.
 //!
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
@@ -8,19 +7,32 @@
 //! [`syn::Expr`]: https://docs.rs/syn/latest/syn/enum.Expr.html
 //!
 //! ```
-//! use syn_rsx::parse2;
 //! use quote::quote;
+//! use syn::Expr;
+//! use syn_rsx::parse2;
 //!
 //! let tokens = quote! {
-//!     <div>
+//!     <div foo={bar}>
 //!         <div>"hello"</div>
 //!         <world />
 //!     </div>
 //! };
-//!
 //! let nodes = parse2(tokens, None).unwrap();
-//! assert_eq!(nodes[0].childs.len(), 2);
-//! assert_eq!(nodes[0].childs[1].name_as_string().unwrap(), "world");
+//!
+//! let node = &nodes[0];
+//! assert_eq!(node.attributes[0].name_as_string().unwrap(), "foo");
+//! assert!({
+//!     if let Some(Expr::Block(_)) = node.attributes[0].value {
+//!         true
+//!     } else {
+//!         false
+//!     }
+//! });
+//!
+//! let childs = &node.childs;
+//! assert_eq!(childs.len(), 2);
+//! assert_eq!(childs[0].childs[0].value_as_string().unwrap(), "hello");
+//! assert_eq!(childs[1].name_as_string().unwrap(), "world");
 //! ```
 
 extern crate proc_macro;

@@ -231,7 +231,9 @@ impl Parser {
         Ok(block.into())
     }
 
-    // Modified version of `Path::parse_mod_style` to `Ident::peek_any`
+    // Modified version of `Path::parse_mod_style` that uses `Ident::peek_any`
+    // in order to allow parsing reserved keywords
+    //
     // https://docs.rs/syn/1.0.30/src/syn/path.rs.html#388-418
     // TODO: PR upstream
     fn parse_mod_style_any(&self, input: ParseStream) -> Result<ExprPath> {
