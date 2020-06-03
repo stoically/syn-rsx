@@ -17,17 +17,11 @@
 //!         <world />
 //!     </div>
 //! };
+//!
 //! let nodes = parse2(tokens, None).unwrap();
 //!
 //! let node = &nodes[0];
 //! assert_eq!(node.attributes[0].name_as_string().unwrap(), "foo");
-//! assert!({
-//!     if let Some(Expr::Block(_)) = node.attributes[0].value {
-//!         true
-//!     } else {
-//!         false
-//!     }
-//! });
 //!
 //! let childs = &node.childs;
 //! assert_eq!(childs.len(), 2);
