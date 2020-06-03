@@ -23,7 +23,7 @@ pub struct Node {
 
     /// Only might have nodes if `NodeType::Element`. Holds every child as
     /// `Node`
-    pub childs: Vec<Node>,
+    pub children: Vec<Node>,
 }
 
 impl Node {
@@ -56,7 +56,7 @@ impl Node {
 /// Type of the Node
 #[derive(Debug)]
 pub enum NodeType {
-    /// A HTMLElement tag, with optional childs and attributes.
+    /// A HTMLElement tag, with optional children and attributes.
     /// Potentially selfclosing. Any tag name is valid.
     Element,
 

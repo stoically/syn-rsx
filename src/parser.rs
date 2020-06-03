@@ -56,9 +56,9 @@ impl Parser {
 
         let mut nodes = vec![node];
         if self.config.flatten {
-            let mut childs = vec![];
-            childs.append(&mut nodes[0].childs);
-            nodes.append(&mut childs);
+            let mut children = vec![];
+            children.append(&mut nodes[0].children);
+            nodes.append(&mut children);
         }
 
         Ok(nodes)
@@ -74,7 +74,7 @@ impl Parser {
             value: Some(text),
             node_type: NodeType::Text,
             attributes: vec![],
-            childs: vec![],
+            children: vec![],
         })
     }
 
@@ -88,7 +88,7 @@ impl Parser {
             value: Some(block),
             node_type: NodeType::Block,
             attributes: vec![],
-            childs: vec![],
+            children: vec![],
         })
     }
 
@@ -107,14 +107,14 @@ impl Parser {
         }
         let tag_open = self.tag_open(&fork)?;
 
-        let mut childs = vec![];
+        let mut children = vec![];
         if !tag_open.selfclosing {
             loop {
-                if !self.has_childs(&tag_open, &fork)? {
+                if !self.has_children(&tag_open, &fork)? {
                     break;
                 }
 
-                childs.append(&mut self.node(&fork)?);
+                children.append(&mut self.node(&fork)?);
             }
 
             self.tag_close(&fork)?;
@@ -126,11 +126,11 @@ impl Parser {
             value: None,
             node_type: NodeType::Element,
             attributes: tag_open.attributes,
-            childs,
+            children,
         })
     }
 
-    fn has_childs(&self, tag_open: &Tag, input: ParseStream) -> Result<bool> {
+    fn has_children(&self, tag_open: &Tag, input: ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
             return Err(input.error("open tag has no corresponding close tag"));
@@ -202,7 +202,7 @@ impl Parser {
                 node_type: NodeType::Attribute,
                 value,
                 attributes: vec![],
-                childs: vec![],
+                children: vec![],
             });
 
             if input.is_empty() {

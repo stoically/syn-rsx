@@ -23,8 +23,8 @@ let nodes = parse2(tokens, None).unwrap();
 let node = &nodes[0];
 assert_eq!(node.attributes[0].name_as_string().unwrap(), "foo");
 
-let childs = &node.childs;
-assert_eq!(childs.len(), 2);
-assert_eq!(childs[0].childs[0].value_as_string().unwrap(), "hello");
-assert_eq!(childs[1].name_as_string().unwrap(), "world");
+let children = &node.children;
+assert_eq!(children.len(), 2);
+assert_eq!(children[0].children[0].value_as_string().unwrap(), "hello");
+assert_eq!(children[1].name_as_string().unwrap(), "world");
 ```
