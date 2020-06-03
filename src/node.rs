@@ -27,7 +27,7 @@ pub struct Node {
 }
 
 impl Node {
-    /// Returns a `String` if the `node_name` path expression consists of a single ident
+    /// Returns `node_name` path as `String`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
             Some(ExprPath { path, .. }) => Some(
@@ -41,7 +41,7 @@ impl Node {
         }
     }
 
-    /// Returns a `String` if the `node_value` is an `Lit::Str` expression
+    /// Returns `node_value` as `String` if the value is a `Lit::Str` expression
     pub fn value_as_string(&self) -> Option<String> {
         match self.value.as_ref() {
             Some(Expr::Lit(expr)) => match &expr.lit {
@@ -56,7 +56,7 @@ impl Node {
 /// Type of the Node
 #[derive(Debug)]
 pub enum NodeType {
-    /// An HTMLElement tag, with optional childs and attributes.
+    /// A HTMLElement tag, with optional childs and attributes.
     /// Potentially selfclosing. Any tag name is valid.
     Element,
 
