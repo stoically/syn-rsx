@@ -4,13 +4,13 @@ use syn::{
     ext::IdentExt,
     parse::{ParseStream, Parser as _},
     punctuated::Punctuated,
-    token, Expr, ExprBlock, ExprLit, Ident, Path, PathSegment, Result, Token,
+    token, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
 use crate::node::*;
 
 struct Tag {
-    name: Path,
+    name: ExprPath,
     attributes: Vec<Node>,
     selfclosing: bool,
 }
@@ -60,7 +60,7 @@ impl Parser {
         let nodes = if self.config.flatten {
             // TODO there has to be a more elegant way to do this
             let mut childs = vec![];
-            childs.append(&mut node.child_nodes);
+            childs.append(&mut node.childs);
             let mut nodes = vec![node];
             nodes.append(&mut childs);
             nodes
@@ -78,29 +78,29 @@ impl Parser {
 
         let tag_open = self.tag_open(input)?;
 
-        let mut child_nodes = vec![];
+        let mut childs = vec![];
         if !tag_open.selfclosing {
             loop {
-                if !self.has_child_nodes(&tag_open, &input)? {
+                if !self.has_childs(&tag_open, &input)? {
                     break;
                 }
 
-                child_nodes.append(&mut self.node(input)?);
+                childs.append(&mut self.node(input)?);
             }
 
             self.tag_close(input)?;
         }
 
         Ok(Node {
-            node_name: Some(tag_open.name),
-            node_value: None,
+            name: Some(tag_open.name),
+            value: None,
             node_type: NodeType::Element,
             attributes: tag_open.attributes,
-            child_nodes,
+            childs: childs,
         })
     }
 
-    fn has_child_nodes(&self, tag_open: &Tag, input: &ParseStream) -> Result<bool> {
+    fn has_childs(&self, tag_open: &Tag, input: &ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
             return Err(input.error("open tag has no corresponding close tag"));
@@ -121,7 +121,7 @@ impl Parser {
 
     fn tag_open(&self, input: ParseStream) -> Result<Tag> {
         input.parse::<Token![<]>()?;
-        let name = self.parse_any_path(input)?;
+        let name = self.parse_mod_style_any(input)?;
 
         let mut attributes: Vec<TokenTree> = vec![];
         let selfclosing = loop {
@@ -149,10 +149,10 @@ impl Parser {
         Ok(selfclosing)
     }
 
-    fn tag_close(&self, input: ParseStream) -> Result<Path> {
+    fn tag_close(&self, input: ParseStream) -> Result<ExprPath> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
-        let name = self.parse_any_path(input)?;
+        let name = self.parse_mod_style_any(input)?;
         input.parse::<Token![>]>()?;
 
         Ok(name)
@@ -168,11 +168,11 @@ impl Parser {
             let (key, value) = self.attribute(input)?;
 
             nodes.push(Node {
-                node_name: Some(key),
+                name: Some(key),
                 node_type: NodeType::Attribute,
-                node_value: value,
+                value: value,
                 attributes: vec![],
-                child_nodes: vec![],
+                childs: vec![],
             });
 
             if input.is_empty() {
@@ -183,8 +183,8 @@ impl Parser {
         Ok(nodes)
     }
 
-    fn attribute(&self, input: ParseStream) -> Result<(Path, Option<Expr>)> {
-        let key = self.parse_any_path(input)?;
+    fn attribute(&self, input: ParseStream) -> Result<(ExprPath, Option<Expr>)> {
+        let key = self.parse_mod_style_any(input)?;
         let eq = input.parse::<Option<Token![=]>>()?;
         let value = if eq.is_some() {
             if input.peek(token::Brace) {
@@ -203,11 +203,11 @@ impl Parser {
         let text = input.parse::<ExprLit>()?.into();
 
         Ok(Node {
-            node_name: None,
-            node_value: Some(text),
+            name: None,
+            value: Some(text),
             node_type: NodeType::Text,
             attributes: vec![],
-            child_nodes: vec![],
+            childs: vec![],
         })
     }
 
@@ -215,11 +215,11 @@ impl Parser {
         let block = self.block_expr(input)?;
 
         Ok(Node {
-            node_name: None,
-            node_value: Some(block),
+            name: None,
+            value: Some(block),
             node_type: NodeType::Block,
             attributes: vec![],
-            child_nodes: vec![],
+            childs: vec![],
         })
     }
 
@@ -234,8 +234,8 @@ impl Parser {
     // Modified version of `Path::parse_mod_style` to `Ident::peek_any`
     // https://docs.rs/syn/1.0.30/src/syn/path.rs.html#388-418
     // TODO: PR upstream
-    fn parse_any_path(&self, input: ParseStream) -> Result<Path> {
-        Ok(Path {
+    fn parse_mod_style_any(&self, input: ParseStream) -> Result<ExprPath> {
+        let path = Path {
             leading_colon: input.parse()?,
             segments: {
                 let mut segments = Punctuated::new();
@@ -263,6 +263,12 @@ impl Parser {
                 }
                 segments
             },
+        };
+
+        Ok(ExprPath {
+            attrs: vec![],
+            qself: None,
+            path,
         })
     }
 }

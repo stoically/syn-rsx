@@ -19,8 +19,8 @@
 //! };
 //!
 //! let nodes = parse2(tokens, None).unwrap();
-//! assert_eq!(nodes[0].child_nodes.len(), 2);
-//! assert_eq!(nodes[0].child_nodes[1].node_name_as_string().unwrap(), "world");
+//! assert_eq!(nodes[0].childs.len(), 2);
+//! assert_eq!(nodes[0].childs[1].name_as_string().unwrap(), "world");
 //! ```
 
 extern crate proc_macro;
@@ -67,7 +67,7 @@ mod tests {
             <foo></foo>
         };
         let nodes = parse2(tokens, None).unwrap();
-        assert_eq!(nodes[0].node_name_as_string().unwrap(), "foo");
+        assert_eq!(nodes[0].name_as_string().unwrap(), "foo");
     }
 
     #[test]
@@ -78,7 +78,7 @@ mod tests {
         let nodes = parse2(tokens, None).unwrap();
 
         let attribute = &nodes[0].attributes[0];
-        let attribute_value = match attribute.node_value.as_ref().unwrap() {
+        let attribute_value = match attribute.value.as_ref().unwrap() {
             Expr::Lit(expr) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
                 _ => None,
@@ -87,7 +87,7 @@ mod tests {
         }
         .unwrap();
 
-        assert_eq!(attribute.node_name_as_string().unwrap(), "bar");
+        assert_eq!(attribute.name_as_string().unwrap(), "bar");
         assert_eq!(attribute_value, "moo");
     }
 
@@ -98,7 +98,7 @@ mod tests {
         };
         let nodes = parse2(tokens, None).unwrap();
 
-        let node_value = match nodes[0].child_nodes[0].node_value.as_ref().unwrap() {
+        let node_value = match nodes[0].childs[0].value.as_ref().unwrap() {
             Expr::Lit(expr) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
                 _ => None,
@@ -117,11 +117,8 @@ mod tests {
         };
         let nodes = parse2(tokens, None).unwrap();
 
-        assert_eq!(nodes[0].node_name_as_string().unwrap(), "input");
-        assert_eq!(
-            nodes[0].attributes[0].node_name_as_string().unwrap(),
-            "type"
-        );
+        assert_eq!(nodes[0].name_as_string().unwrap(), "input");
+        assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "type");
     }
 
     #[test]
@@ -131,7 +128,7 @@ mod tests {
         };
         let nodes = parse2(tokens, None).unwrap();
 
-        assert_eq!(nodes[0].child_nodes.len(), 1);
+        assert_eq!(nodes[0].childs.len(), 1);
     }
 
     #[test]
@@ -159,6 +156,6 @@ mod tests {
         };
 
         let nodes = parse2(tokens, None).unwrap();
-        assert_eq!(nodes[0].node_name.as_ref().unwrap().segments.len(), 2);
+        assert_eq!(nodes[0].name_as_string().unwrap(), "some::path");
     }
 }

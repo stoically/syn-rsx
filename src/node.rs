@@ -1,4 +1,4 @@
-use syn::{Expr, Lit, Path};
+use syn::{Expr, ExprPath, Lit};
 
 /// Node in the tree
 #[derive(Debug)]
@@ -9,13 +9,13 @@ pub struct Node {
     /// - `Attribute`: key of the attribute
     /// - `Text`: `None`
     /// - `Block`: `None`
-    pub node_name: Option<Path>,
+    pub name: Option<ExprPath>,
 
     /// Type of the node
     pub node_type: NodeType,
 
-    /// Content depends on the `NodeType`
-    pub node_value: Option<Expr>,
+    /// Holds a value according to the `NodeType`
+    pub value: Option<Expr>,
 
     /// Only might have nodes if `NodeType::Element`. Holds every attribute
     /// as `NodeType::Attribute`
@@ -23,22 +23,27 @@ pub struct Node {
 
     /// Only might have nodes if `NodeType::Element`. Holds every child as
     /// `Node`
-    pub child_nodes: Vec<Node>,
+    pub childs: Vec<Node>,
 }
 
 impl Node {
-    /// Returns a `String` if the `node_name` `Path` consists of a single ident
-    pub fn node_name_as_string(&self) -> Option<String> {
-        if let Some(path) = self.node_name.as_ref() {
-            path.get_ident().map(|ident| ident.to_string())
-        } else {
-            None
+    /// Returns a `String` if the `node_name` path expression consists of a single ident
+    pub fn name_as_string(&self) -> Option<String> {
+        match self.name.as_ref() {
+            Some(ExprPath { path, .. }) => Some(
+                path.segments
+                    .iter()
+                    .map(|segment| segment.ident.to_string())
+                    .collect::<Vec<String>>()
+                    .join("::"),
+            ),
+            _ => None,
         }
     }
 
     /// Returns a `String` if the `node_value` is an `Lit::Str` expression
-    pub fn node_value_as_string(&self) -> Option<String> {
-        match self.node_value.as_ref() {
+    pub fn value_as_string(&self) -> Option<String> {
+        match self.value.as_ref() {
             Some(Expr::Lit(expr)) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
                 _ => None,

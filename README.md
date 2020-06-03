@@ -19,6 +19,6 @@ let tokens = quote! {
 };
 
 let nodes = parse2(tokens, None).unwrap();
-assert_eq!(nodes[0].child_nodes.len(), 2);
-assert_eq!(nodes[0].child_nodes[1].node_name_as_string().unwrap(), "world");
+assert_eq!(nodes[0].childs.len(), 2);
+assert_eq!(nodes[0].childs[1].name_as_string().unwrap(), "world");
 ```
