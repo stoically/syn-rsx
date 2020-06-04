@@ -1,16 +1,20 @@
-use proc_macro2::TokenTree;
+use proc_macro2::{TokenStream, TokenTree};
 use std::iter;
 use syn::{
+    custom_punctuation,
     ext::IdentExt,
-    parse::{discouraged::Speculative, ParseStream, Parser as _},
+    parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
-    token, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
+    token::Brace,
+    Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
 use crate::node::*;
 
+custom_punctuation!(Dash, -);
+
 struct Tag {
-    name: ExprPath,
+    name: NodeName,
     attributes: Vec<Node>,
     selfclosing: bool,
 }
@@ -42,7 +46,7 @@ impl Parser {
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         while !input.cursor().eof() {
-            nodes.append(&mut self.node(input)?)
+            nodes.append(&mut self.node(input)?);
         }
 
         Ok(nodes)
@@ -151,19 +155,20 @@ impl Parser {
 
     fn tag_open(&self, input: ParseStream) -> Result<Tag> {
         input.parse::<Token![<]>()?;
-        let name = self.parse_mod_style_any(input)?;
+        let name = self.node_name(input)?;
 
-        let mut attributes: Vec<TokenTree> = vec![];
+        let mut attributes = TokenStream::new();
         let selfclosing = loop {
             if let Ok(selfclosing) = self.tag_open_end(input) {
                 break selfclosing;
             }
 
-            attributes.push(input.parse()?);
+            let next: TokenTree = input.parse()?;
+            attributes.extend(Some(next));
         };
 
         let parser = move |input: ParseStream| self.attributes(input);
-        let attributes = parser.parse2(attributes.into_iter().collect())?;
+        let attributes = parser.parse2(attributes)?;
 
         Ok(Tag {
             name,
@@ -179,10 +184,10 @@ impl Parser {
         Ok(selfclosing)
     }
 
-    fn tag_close(&self, input: ParseStream) -> Result<ExprPath> {
+    fn tag_close(&self, input: ParseStream) -> Result<NodeName> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
-        let name = self.parse_mod_style_any(input)?;
+        let name = self.node_name(input)?;
         input.parse::<Token![>]>()?;
 
         Ok(name)
@@ -194,9 +199,7 @@ impl Parser {
             return Ok(nodes);
         }
 
-        while self.attribute(&input.fork()).is_ok() {
-            let (key, value) = self.attribute(input)?;
-
+        while let Ok((key, value)) = self.attribute(input) {
             nodes.push(Node {
                 name: Some(key),
                 node_type: NodeType::Attribute,
@@ -213,28 +216,70 @@ impl Parser {
         Ok(nodes)
     }
 
-    fn attribute(&self, input: ParseStream) -> Result<(ExprPath, Option<Expr>)> {
-        let key = self.parse_mod_style_any(input)?;
-        let eq = input.parse::<Option<Token![=]>>()?;
+    fn attribute(&self, input: ParseStream) -> Result<(NodeName, Option<Expr>)> {
+        let fork = &input.fork();
+        let key = self.node_name(fork)?;
+        let eq = fork.parse::<Option<Token![=]>>()?;
         let value = if eq.is_some() {
-            if input.peek(token::Brace) {
-                Some(self.block_expr(input)?)
+            if fork.peek(Brace) {
+                Some(self.block_expr(fork)?)
             } else {
-                Some(input.parse()?)
+                Some(fork.parse()?)
             }
         } else {
             None
         };
+        input.advance_to(fork);
 
         Ok((key, value))
+    }
+
+    fn node_name(&self, input: ParseStream) -> Result<NodeName> {
+        let node_name = self
+            .node_name_punctuated_ident::<Dash, fn(_) -> Dash>(input, Dash)
+            .map(|ok| NodeName::Dashed(ok))
+            .or_else(|_| self.node_name_mod_style(input))
+            .or(Err(input.error("invalid node name")))?;
+
+        Ok(node_name)
+    }
+
+    fn node_name_punctuated_ident<T: Parse, F: Peek>(
+        &self,
+        input: ParseStream,
+        punct: F,
+    ) -> Result<Punctuated<Ident, T>> {
+        let fork = &input.fork();
+        let mut segments = Punctuated::<Ident, T>::new();
+
+        while !fork.is_empty() && fork.peek(Ident::peek_any) {
+            let ident = Ident::parse_any(fork)?;
+            segments.push_value(ident.clone());
+
+            if fork.peek(punct) {
+                segments.push_punct(fork.parse()?);
+            } else {
+                break;
+            }
+        }
+
+        if segments.len() > 1 {
+            input.advance_to(fork);
+            Ok(segments)
+        } else {
+            Err(fork.error("expected punctuated node name"))
+        }
     }
 
     // Modified version of `Path::parse_mod_style` that uses `Ident::peek_any`
     // in order to allow parsing reserved keywords
     //
     // https://docs.rs/syn/1.0.30/src/syn/path.rs.html#388-418
-    // TODO: PR upstream
-    fn parse_mod_style_any(&self, input: ParseStream) -> Result<ExprPath> {
+    // TODO: consider PR upstream
+    fn node_name_mod_style(&self, input: ParseStream) -> Result<NodeName> {
+        let given_input = input;
+        let input = &input.fork();
+
         let path = Path {
             leading_colon: input.parse()?,
             segments: {
@@ -264,11 +309,12 @@ impl Parser {
                 segments
             },
         };
+        given_input.advance_to(input);
 
-        Ok(ExprPath {
+        Ok(NodeName::Path(ExprPath {
             attrs: vec![],
             qself: None,
             path,
-        })
+        }))
     }
 }

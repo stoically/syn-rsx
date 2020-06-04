@@ -1,4 +1,6 @@
-use syn::{Expr, ExprPath, Lit};
+use syn::{punctuated::Punctuated, Expr, ExprPath, Ident, Lit};
+
+use crate::parser::Dash;
 
 /// Node in the tree
 #[derive(Debug)]
@@ -9,7 +11,7 @@ pub struct Node {
     /// - `Attribute`: key of the attribute
     /// - `Text`: `None`
     /// - `Block`: `None`
-    pub name: Option<ExprPath>,
+    pub name: Option<NodeName>,
 
     /// Type of the node
     pub node_type: NodeType,
@@ -29,12 +31,19 @@ impl Node {
     /// Returns the `name` path as `String`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
-            Some(ExprPath { path, .. }) => Some(
-                path.segments
+            Some(NodeName::Path(expr)) => Some(
+                expr.path
+                    .segments
                     .iter()
                     .map(|segment| segment.ident.to_string())
                     .collect::<Vec<String>>()
                     .join("::"),
+            ),
+            Some(NodeName::Dashed(name)) => Some(
+                name.iter()
+                    .map(|ident| ident.to_string())
+                    .collect::<Vec<String>>()
+                    .join("-"),
             ),
             _ => None,
         }
@@ -69,4 +78,31 @@ pub enum NodeType {
 
     /// Arbitrary rust code in braced `{}` blocks
     Block,
+}
+
+/// Name of the node
+#[derive(Debug)]
+pub enum NodeName {
+    /// [Mod style path] containing no path arguments on any of its segments
+    ///
+    /// [Mod style path]: https://docs.rs/syn/1.0.30/syn/struct.Path.html#method.parse_mod_style
+    Path(ExprPath),
+
+    /// Name separated by dashes, e.g. `<div data-foo="bar" />`
+    Dashed(Punctuated<Ident, Dash>),
+}
+
+impl PartialEq for NodeName {
+    fn eq(&self, other: &NodeName) -> bool {
+        match self {
+            Self::Dashed(this) => match other {
+                Self::Dashed(other) => this == other,
+                _ => false,
+            },
+            Self::Path(this) => match other {
+                Self::Path(other) => this == other,
+                _ => false,
+            },
+        }
+    }
 }

@@ -42,7 +42,7 @@ use syn::{
 mod node;
 mod parser;
 
-pub use node::{Node, NodeType};
+pub use node::{Node, NodeName, NodeType};
 pub use parser::{Parser, ParserConfig};
 
 /// Parse the given `proc-macro::TokenStream` into a `Node` tree
@@ -166,5 +166,15 @@ mod tests {
 
         let nodes = parse2(tokens, None).unwrap();
         assert_eq!(nodes[0].name_as_string().unwrap(), "some::path");
+    }
+
+    #[test]
+    fn test_dashed_attribute_name() {
+        let tokens = quote::quote! {
+            <div data-foo="bar" />
+        };
+
+        let nodes = parse2(tokens, None).unwrap();
+        assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "data-foo");
     }
 }
