@@ -177,4 +177,14 @@ mod tests {
         let nodes = parse2(tokens, None).unwrap();
         assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "data-foo");
     }
+
+    #[test]
+    fn test_coloned_attribute_name() {
+        let tokens = quote::quote! {
+            <div on:click={foo} />
+        };
+
+        let nodes = parse2(tokens, None).unwrap();
+        assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "on:click");
+    }
 }

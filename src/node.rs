@@ -1,4 +1,4 @@
-use syn::{punctuated::Punctuated, Expr, ExprPath, Ident, Lit};
+use syn::{punctuated::Punctuated, token::Colon, Expr, ExprPath, Ident, Lit};
 
 use crate::parser::Dash;
 
@@ -45,7 +45,13 @@ impl Node {
                     .collect::<Vec<String>>()
                     .join("-"),
             ),
-            _ => None,
+            Some(NodeName::Colon(name)) => Some(
+                name.iter()
+                    .map(|ident| ident.to_string())
+                    .collect::<Vec<String>>()
+                    .join(":"),
+            ),
+            None => None,
         }
     }
 
@@ -90,6 +96,9 @@ pub enum NodeName {
 
     /// Name separated by dashes, e.g. `<div data-foo="bar" />`
     Dash(Punctuated<Ident, Dash>),
+
+    /// Name separated by colons, e.g. `<div on:click={foo} />`
+    Colon(Punctuated<Ident, Colon>),
 }
 
 impl PartialEq for NodeName {
@@ -103,8 +112,8 @@ impl PartialEq for NodeName {
                 Self::Dash(other) => this == other,
                 _ => false,
             },
-            Self::Path(this) => match other {
-                Self::Path(other) => this == other,
+            Self::Colon(this) => match other {
+                Self::Colon(other) => this == other,
                 _ => false,
             },
         }

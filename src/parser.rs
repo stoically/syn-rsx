@@ -5,7 +5,7 @@ use syn::{
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
-    token::Brace,
+    token::{Brace, Colon},
     Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
@@ -81,9 +81,7 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let fork = input.fork();
-        let block = self.block_expr(&fork)?;
-        input.advance_to(&fork);
+        let block = self.block_expr(input)?;
 
         Ok(Node {
             name: None,
@@ -95,9 +93,11 @@ impl Parser {
     }
 
     fn block_expr(&self, input: ParseStream) -> Result<Expr> {
+        let fork = input.fork();
         let parser = move |input: ParseStream| input.parse();
-        let group: TokenTree = input.parse()?;
+        let group: TokenTree = fork.parse()?;
         let block: ExprBlock = parser.parse2(iter::once(group).collect())?;
+        input.advance_to(&fork);
 
         Ok(block.into())
     }
@@ -236,6 +236,10 @@ impl Parser {
         let node_name = self
             .node_name_punctuated_ident::<Dash, fn(_) -> Dash>(input, Dash)
             .map(|ok| NodeName::Dash(ok))
+            .or_else(|_| {
+                self.node_name_punctuated_ident::<Colon, fn(_) -> Colon>(input, Colon)
+                    .map(|ok| NodeName::Colon(ok))
+            })
             .or_else(|_| self.node_name_mod_style(input))
             .or(Err(input.error("invalid node name")))?;
 
