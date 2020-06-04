@@ -5,7 +5,7 @@
 ![build](https://github.com/stoically/syn-rsx/workflows/build/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
 
-[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html). The parsed result is a nested `Node` structure, similar to the browser DOM.
+[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html). The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros. A `ParserConfig` to customize parsing behavior is available, so if you have slightly different requirements for parsing and it's not yet customizable feel free to open an issue or pull request to extend the configuration.
 
 ```rust
 use quote::quote;

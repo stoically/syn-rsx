@@ -1,10 +1,14 @@
 //! [`syn`]-powered parser for JSX-like [`TokenStream`]s. The parsed result is a
-//! nested [`Node`] structure, similar to the browser DOM.
+//! nested [`Node`] structure, similar to the browser DOM, where node name and
+//! value are syn expressions to support building proc macros. A [`ParserConfig`]
+//! to customize parsing behavior is available, so if you have slightly
+//! different requirements for parsing and it's not yet customizable feel free
+//! to open an issue or pull request to extend the configuration.
 //!
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 //! [`Node`]: struct.Node.html
-//! [`syn::Expr`]: https://docs.rs/syn/latest/syn/enum.Expr.html
+//! [`ParserConfig`]: struct.PaserConfig.html
 //!
 //! ```
 //! use quote::quote;
