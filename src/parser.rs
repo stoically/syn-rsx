@@ -235,7 +235,7 @@ impl Parser {
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
         let node_name = self
             .node_name_punctuated_ident::<Dash, fn(_) -> Dash>(input, Dash)
-            .map(|ok| NodeName::Dashed(ok))
+            .map(|ok| NodeName::Dash(ok))
             .or_else(|_| self.node_name_mod_style(input))
             .or(Err(input.error("invalid node name")))?;
 

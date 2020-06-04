@@ -39,7 +39,7 @@ impl Node {
                     .collect::<Vec<String>>()
                     .join("::"),
             ),
-            Some(NodeName::Dashed(name)) => Some(
+            Some(NodeName::Dash(name)) => Some(
                 name.iter()
                     .map(|ident| ident.to_string())
                     .collect::<Vec<String>>()
@@ -89,14 +89,18 @@ pub enum NodeName {
     Path(ExprPath),
 
     /// Name separated by dashes, e.g. `<div data-foo="bar" />`
-    Dashed(Punctuated<Ident, Dash>),
+    Dash(Punctuated<Ident, Dash>),
 }
 
 impl PartialEq for NodeName {
     fn eq(&self, other: &NodeName) -> bool {
         match self {
-            Self::Dashed(this) => match other {
-                Self::Dashed(other) => this == other,
+            Self::Path(this) => match other {
+                Self::Path(other) => this == other,
+                _ => false,
+            },
+            Self::Dash(this) => match other {
+                Self::Dash(other) => this == other,
                 _ => false,
             },
             Self::Path(this) => match other {
