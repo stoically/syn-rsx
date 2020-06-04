@@ -101,25 +101,25 @@ impl Parser {
     }
 
     fn element(&self, input: ParseStream) -> Result<Node> {
-        let fork = input.fork();
+        let fork = &input.fork();
         if let Ok(_) = self.tag_close(&input.fork()) {
             return Err(fork.error("close tag has no corresponding open tag"));
         }
-        let tag_open = self.tag_open(&fork)?;
+        let tag_open = self.tag_open(fork)?;
 
         let mut children = vec![];
         if !tag_open.selfclosing {
             loop {
-                if !self.has_children(&tag_open, &fork)? {
+                if !self.has_children(&tag_open, fork)? {
                     break;
                 }
 
-                children.append(&mut self.node(&fork)?);
+                children.append(&mut self.node(fork)?);
             }
 
-            self.tag_close(&fork)?;
+            self.tag_close(fork)?;
         }
-        input.advance_to(&fork);
+        input.advance_to(fork);
 
         Ok(Node {
             name: Some(tag_open.name),

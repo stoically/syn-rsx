@@ -21,13 +21,12 @@ pub struct Node {
     /// as `NodeType::Attribute`
     pub attributes: Vec<Node>,
 
-    /// Only might have nodes if `NodeType::Element`. Holds every child as
-    /// `Node`
+    /// Only might have nodes if `NodeType::Element`
     pub children: Vec<Node>,
 }
 
 impl Node {
-    /// Returns `node_name` path as `String`
+    /// Returns the `name` path as `String`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
             Some(ExprPath { path, .. }) => Some(
@@ -41,7 +40,7 @@ impl Node {
         }
     }
 
-    /// Returns `node_value` as `String` if the value is a `Lit::Str` expression
+    /// Returns `value` as `String` if the value is a `Lit::Str` expression
     pub fn value_as_string(&self) -> Option<String> {
         match self.value.as_ref() {
             Some(Expr::Lit(expr)) => match &expr.lit {
