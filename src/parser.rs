@@ -69,9 +69,7 @@ impl Parser {
     }
 
     fn text(&self, input: ParseStream) -> Result<Node> {
-        let fork = input.fork();
-        let text = fork.parse::<ExprLit>()?.into();
-        input.advance_to(&fork);
+        let text = input.parse::<ExprLit>()?.into();
 
         Ok(Node {
             name: None,
