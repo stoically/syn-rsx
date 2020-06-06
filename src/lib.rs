@@ -68,7 +68,6 @@ pub fn parse2(tokens: proc_macro2::TokenStream, config: Option<ParserConfig>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::{Expr, Lit};
 
     #[test]
     fn test_single_empty_element() {
@@ -87,17 +86,8 @@ mod tests {
         let nodes = parse2(tokens, None).unwrap();
 
         let attribute = &nodes[0].attributes[0];
-        let attribute_value = match attribute.value.as_ref().unwrap() {
-            Expr::Lit(expr) => match &expr.lit {
-                Lit::Str(lit_str) => Some(lit_str.value()),
-                _ => None,
-            },
-            _ => None,
-        }
-        .unwrap();
-
         assert_eq!(attribute.name_as_string().unwrap(), "bar");
-        assert_eq!(attribute_value, "moo");
+        assert_eq!(attribute.value_as_string().unwrap(), "moo");
     }
 
     #[test]
@@ -105,18 +95,9 @@ mod tests {
         let tokens = quote::quote! {
             <foo>"bar"</foo>
         };
+
         let nodes = parse2(tokens, None).unwrap();
-
-        let node_value = match nodes[0].children[0].value.as_ref().unwrap() {
-            Expr::Lit(expr) => match &expr.lit {
-                Lit::Str(lit_str) => Some(lit_str.value()),
-                _ => None,
-            },
-            _ => None,
-        }
-        .unwrap();
-
-        assert_eq!(node_value, "bar");
+        assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "bar");
     }
 
     #[test]

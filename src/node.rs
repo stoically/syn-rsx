@@ -67,7 +67,7 @@ impl Node {
     }
 }
 
-/// Type of the Node
+/// Type of the node
 #[derive(Debug)]
 pub enum NodeType {
     /// A HTMLElement tag, with optional children and attributes.
