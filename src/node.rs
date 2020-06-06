@@ -1,34 +1,41 @@
+//! Tree of nodes
+
 use syn::{punctuated::Punctuated, token::Colon, Expr, ExprPath, Ident, Lit};
 
-use crate::parser::Dash;
+use crate::punctuation::Dash;
 
 /// Node in the tree
 #[derive(Debug)]
 pub struct Node {
-    /// Content depends on the `NodeType`:
+    /// Name according to the `NodeType`:
     ///
-    /// - `Element`: name of the tag
-    /// - `Attribute`: key of the attribute
+    /// - `Element`: Name of the element
+    /// - `Attribute`: Key of the element attribute
     /// - `Text`: `None`
     /// - `Block`: `None`
     pub name: Option<NodeName>,
 
-    /// Type of the node
+    /// Type of the nodes
     pub node_type: NodeType,
 
-    /// Holds a value according to the `NodeType`
+    /// Value according to the `NodeType`:
+    ///
+    /// - `Element`: `None`
+    /// - `Attribute`: Any valid `syn::Expr`
+    /// - `Text`: `syn::Expr::Lit`
+    /// - `Block`: `syn::Expr::Block`
     pub value: Option<Expr>,
 
-    /// Only might have nodes if `NodeType::Element`. Holds every attribute
-    /// as `NodeType::Attribute`
+    /// Has nodes if `NodeType::Element`. Every attribute is
+    /// `NodeType::Attribute`
     pub attributes: Vec<Node>,
 
-    /// Only might have nodes if `NodeType::Element`
+    /// Has nodes if `NodeType::Element`
     pub children: Vec<Node>,
 }
 
 impl Node {
-    /// Returns the `name` path as `String`
+    /// Returns `name` as `String` if it's `Some`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
             Some(NodeName::Path(expr)) => Some(
@@ -55,7 +62,7 @@ impl Node {
         }
     }
 
-    /// Returns `value` as `String` if the value is a `Lit::Str` expression
+    /// Returns `value` as `String` if it's a `Lit::Str` expression
     pub fn value_as_string(&self) -> Option<String> {
         match self.value.as_ref() {
             Some(Expr::Lit(expr)) => match &expr.lit {
@@ -89,9 +96,11 @@ pub enum NodeType {
 /// Name of the node
 #[derive(Debug)]
 pub enum NodeName {
-    /// [Mod style path] containing no path arguments on any of its segments
+    /// [Mod style path] containing no path arguments on any of its segments. A
+    /// plain identifier like `x` is a path of length 1.
     ///
-    /// [Mod style path]: https://docs.rs/syn/1.0.30/syn/struct.Path.html#method.parse_mod_style
+    /// [Mod style path]:
+    /// https://docs.rs/syn/1.0.30/syn/struct.Path.html#method.parse_mod_style
     Path(ExprPath),
 
     /// Name separated by dashes, e.g. `<div data-foo="bar" />`

@@ -1,7 +1,8 @@
+//! RSX Parser
+
 use proc_macro2::{TokenStream, TokenTree};
 use std::iter;
 use syn::{
-    custom_punctuation,
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
@@ -9,9 +10,7 @@ use syn::{
     Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
-use crate::node::*;
-
-custom_punctuation!(Dash, -);
+use crate::{node::*, punctuation::*};
 
 struct Tag {
     name: NodeName,
