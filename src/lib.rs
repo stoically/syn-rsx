@@ -8,7 +8,7 @@
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 //! [`Node`]: struct.Node.html
-//! [`ParserConfig`]: struct.PaserConfig.html
+//! [`ParserConfig`]: struct.ParserConfig.html
 //!
 //! ```
 //! use quote::quote;
