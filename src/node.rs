@@ -1,6 +1,7 @@
 //! Tree of nodes
 
-use syn::{punctuated::Punctuated, token::Colon, Expr, ExprPath, Ident, Lit};
+use proc_macro2::Span;
+use syn::{punctuated::Punctuated, spanned::Spanned, token::Colon, Expr, ExprPath, Ident, Lit};
 
 use crate::punctuation::Dash;
 
@@ -58,6 +59,16 @@ impl Node {
                     .collect::<Vec<String>>()
                     .join(":"),
             ),
+            None => None,
+        }
+    }
+
+    /// Returns the `name`'s `Span` if it's `Some`
+    pub fn name_span(&self) -> Option<Span> {
+        match self.name.as_ref() {
+            Some(NodeName::Path(name)) => Some(name.span()),
+            Some(NodeName::Dash(name)) => Some(name.span()),
+            Some(NodeName::Colon(name)) => Some(name.span()),
             None => None,
         }
     }
