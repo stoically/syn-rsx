@@ -27,8 +27,8 @@ pub struct Node {
     /// - `Block`: `syn::Expr::Block`
     pub value: Option<Expr>,
 
-    /// Has nodes if `NodeType::Element`. Every attribute is
-    /// `NodeType::Attribute`
+    /// Has nodes if `NodeType::Element`. Attributes are
+    /// `NodeType::Attribute` or `NodeType::Block`
     pub attributes: Vec<Node>,
 
     /// Has nodes if `NodeType::Element`

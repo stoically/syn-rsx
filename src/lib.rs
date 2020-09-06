@@ -181,4 +181,14 @@ mod tests {
         let nodes = parse2(tokens, None).unwrap();
         assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "on:click");
     }
+
+    #[test]
+    fn test_block_as_attribute() {
+        let tokens = quote::quote! {
+            <div {attribute} />
+        };
+
+        let nodes = parse2(tokens, None).unwrap();
+        assert_eq!(nodes[0].attributes.len(), 1);
+    }
 }

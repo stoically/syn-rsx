@@ -204,40 +204,52 @@ impl Parser {
             if input.is_empty() {
                 break;
             }
-            let (key, value) = self.attribute(input)?;
 
-            nodes.push(Node {
-                name: Some(key),
-                node_type: NodeType::Attribute,
-                value,
-                attributes: vec![],
-                children: vec![],
-            });
+            nodes.push(self.attribute(input)?);
         }
 
         Ok(nodes)
     }
 
-    fn attribute(&self, input: ParseStream) -> Result<(NodeName, Option<Expr>)> {
+    fn attribute(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
-        let key = self.node_name(fork)?;
-        let eq = fork.parse::<Option<Token![=]>>()?;
-        let value = if eq.is_some() {
-            if fork.is_empty() {
-                return Err(fork.error("missing attribute value"));
-            }
+        if fork.peek(Brace) {
+            let value = Some(self.block_expr(fork)?);
+            input.advance_to(fork);
 
-            if fork.peek(Brace) {
-                Some(self.block_expr(fork)?)
-            } else {
-                Some(fork.parse()?)
-            }
+            Ok(Node {
+                name: None,
+                node_type: NodeType::Block,
+                value,
+                attributes: vec![],
+                children: vec![],
+            })
         } else {
-            None
-        };
-        input.advance_to(fork);
+            let key = self.node_name(fork)?;
+            let eq = fork.parse::<Option<Token![=]>>()?;
+            let value = if eq.is_some() {
+                if fork.is_empty() {
+                    return Err(fork.error("missing attribute value"));
+                }
 
-        Ok((key, value))
+                if fork.peek(Brace) {
+                    Some(self.block_expr(fork)?)
+                } else {
+                    Some(fork.parse()?)
+                }
+            } else {
+                None
+            };
+            input.advance_to(fork);
+
+            Ok(Node {
+                name: Some(key),
+                node_type: NodeType::Attribute,
+                value,
+                attributes: vec![],
+                children: vec![],
+            })
+        }
     }
 
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
