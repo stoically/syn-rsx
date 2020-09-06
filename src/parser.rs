@@ -52,10 +52,13 @@ impl Parser {
     }
 
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
-        let node = self
-            .text(input)
-            .or_else(|_| self.block(input))
-            .or_else(|_| self.element(input))?;
+        let node = if input.peek(Token![<]) {
+            self.element(input)
+        } else if input.peek(Brace) {
+            self.block(input)
+        } else {
+            self.text(input)
+        }?;
 
         let mut nodes = vec![node];
         if self.config.flatten {
