@@ -10,8 +10,8 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
-proc-macro2 = "1.0.18"
-syn = { version = "1.0.30", features = ["full", "parsing", "extra-traits"] }
+proc-macro2 = "1.0.20"
+syn = { version = "1.0.39", features = ["full", "parsing", "extra-traits"] }
 
 [dev-dependencies]
-quote = "1.0.6"
+quote = "1.0.7"
