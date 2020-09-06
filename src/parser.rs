@@ -163,6 +163,10 @@ impl Parser {
                 break selfclosing;
             }
 
+            if input.is_empty() {
+                return Err(input.error("expected valid attribute or closing caret >"));
+            }
+
             let next: TokenTree = input.parse()?;
             attributes.extend(Some(next));
         };
@@ -195,11 +199,13 @@ impl Parser {
 
     fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
-        if input.is_empty() {
-            return Ok(nodes);
-        }
 
-        while let Ok((key, value)) = self.attribute(input) {
+        loop {
+            if input.is_empty() {
+                break;
+            }
+            let (key, value) = self.attribute(input)?;
+
             nodes.push(Node {
                 name: Some(key),
                 node_type: NodeType::Attribute,
@@ -207,10 +213,6 @@ impl Parser {
                 attributes: vec![],
                 children: vec![],
             });
-
-            if input.is_empty() {
-                break;
-            }
         }
 
         Ok(nodes)
@@ -221,6 +223,10 @@ impl Parser {
         let key = self.node_name(fork)?;
         let eq = fork.parse::<Option<Token![=]>>()?;
         let value = if eq.is_some() {
+            if fork.is_empty() {
+                return Err(fork.error("missing attribute value"));
+            }
+
             if fork.peek(Brace) {
                 Some(self.block_expr(fork)?)
             } else {
@@ -243,7 +249,7 @@ impl Parser {
                     .map(|ok| NodeName::Colon(ok))
             })
             .or_else(|_| self.node_name_mod_style(input))
-            .or(Err(input.error("invalid node name")))?;
+            .or(Err(input.error("invalid tag name or attribute key")))?;
 
         Ok(node_name)
     }
