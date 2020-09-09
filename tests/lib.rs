@@ -1,4 +1,5 @@
 use quote::quote;
+use syn::Error;
 use syn_rsx::{parse2, parse2_with_config, ParserConfig};
 
 #[test]
@@ -55,7 +56,7 @@ fn test_block_node() {
 
 #[test]
 fn test_flat_tree() {
-    let config = ParserConfig { flatten: true };
+    let config = ParserConfig::new().flat_tree();
 
     let tokens = quote! {
         <div>
@@ -109,4 +110,18 @@ fn test_block_as_attribute() {
 
     let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].attributes.len(), 1);
+}
+
+#[test]
+fn test_number_of_top_level_nodes() {
+    let tokens = quote! {
+        <div />
+        <div />
+        <div />
+    };
+
+    let config = ParserConfig::new().number_of_top_level_nodes(2);
+    let nodes = parse2_with_config(tokens, config);
+
+    assert!(nodes.is_err())
 }

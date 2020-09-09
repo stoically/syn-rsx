@@ -13,14 +13,28 @@ use syn::{
 use crate::{node::*, punctuation::*};
 
 /// Configures the `Parser` behavior
+#[derive(Debug, Default)]
 pub struct ParserConfig {
-    /// Whether the returned node tree should be nested or flat. Defaults to `false`
-    pub flatten: bool,
+    flat_tree: bool,
+    number_of_top_level_nodes: Option<usize>,
 }
 
-impl Default for ParserConfig {
-    fn default() -> Self {
-        Self { flatten: false }
+impl ParserConfig {
+    /// Create new `ParserConfig` with default config
+    pub fn new() -> ParserConfig {
+        ParserConfig::default()
+    }
+
+    /// Return flat tree instead of nested tree
+    pub fn flat_tree(mut self) -> Self {
+        self.flat_tree = true;
+        self
+    }
+
+    /// Maximum number of allowed top level nodes
+    pub fn number_of_top_level_nodes(mut self, number: usize) -> Self {
+        self.number_of_top_level_nodes = Some(number);
+        self
     }
 }
 
@@ -39,6 +53,15 @@ impl Parser {
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         while !input.cursor().eof() {
+            if let Some(number_of_top_level_nodes) = self.config.number_of_top_level_nodes {
+                if nodes.len() >= number_of_top_level_nodes {
+                    return Err(input.error(format!(
+                        "Maximum number of allowed top level nodes exceeded: {}",
+                        number_of_top_level_nodes
+                    )));
+                }
+            }
+
             nodes.append(&mut self.node(input)?);
         }
 
@@ -55,7 +78,7 @@ impl Parser {
         }?;
 
         let mut nodes = vec![node];
-        if self.config.flatten {
+        if self.config.flat_tree {
             let mut children = vec![];
             children.append(&mut nodes[0].children);
             nodes.append(&mut children);
