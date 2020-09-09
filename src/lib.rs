@@ -21,49 +21,77 @@
 //!
 //!   Every tag or attribute name is valid
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <hello world />
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Text nodes**
 //!
 //!   Support for [unquoted text is planned] (currently requires Rust nightly)
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <div>"String literal"</div>
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Node names separated by dash or colon**
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <tag-name attribute-key="value" />
 //!   <tag:name attribute:key="value" />
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Node names as [mod style path]**
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <tag::path attribute::path="value" />
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Node names with reserved keywords**
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <input type="submit" />
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Attribute values can be any valid syn expression without requiring braces**
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <div key=some::value() />
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Braced blocks are parsed as arbitrary Rust code**
 //!
-//!   ```html
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
 //!   <div>{ let block = "in node position"; }</div>
 //!   <div { let block = "in attribute position"; } />
-//!   <div key={ let block = "in attribute value position"; }>
+//!   <div key={ let block = "in attribute value position"; } />
+//!   # }).unwrap();
 //!   ```
 //!
 //! - **Customization**
