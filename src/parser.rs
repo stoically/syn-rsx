@@ -13,7 +13,7 @@ use syn::{
 use crate::{node::*, punctuation::*};
 
 /// Configures the `Parser` behavior
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ParserConfig {
     flat_tree: bool,
     number_of_top_level_nodes: Option<usize>,
@@ -32,7 +32,7 @@ impl ParserConfig {
         self
     }
 
-    /// Maximum number of allowed top level nodes
+    /// Exact number of required top level nodes
     pub fn number_of_top_level_nodes(mut self, number: usize) -> Self {
         self.number_of_top_level_nodes = Some(number);
         self
@@ -61,9 +61,9 @@ impl Parser {
         let mut nodes = vec![];
         while !input.cursor().eof() {
             if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
-                if &nodes.len() >= number_of_top_level_nodes {
+                if &nodes.len() != number_of_top_level_nodes {
                     return Err(input.error(format!(
-                        "Maximum number of allowed top level nodes exceeded: {}",
+                        "Exact number of required top level nodes: {}",
                         number_of_top_level_nodes
                     )));
                 }

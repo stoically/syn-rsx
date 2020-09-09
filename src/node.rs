@@ -87,7 +87,7 @@ impl Node {
 }
 
 /// Type of the node
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
     /// A HTMLElement tag, with optional children and attributes.
     /// Potentially selfclosing. Any tag name is valid.

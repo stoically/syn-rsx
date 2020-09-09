@@ -113,16 +113,21 @@ fn test_block_as_attribute() {
 
 #[test]
 fn test_number_of_top_level_nodes() {
+    let config = ParserConfig::new().number_of_top_level_nodes(2);
+
     let tokens = quote! {
         <div />
         <div />
         <div />
     };
+    let nodes = parse2_with_config(tokens, config.clone());
+    assert!(nodes.is_err());
 
-    let config = ParserConfig::new().number_of_top_level_nodes(2);
+    let tokens = quote! {
+        <div />
+    };
     let nodes = parse2_with_config(tokens, config);
-
-    assert!(nodes.is_err())
+    assert!(nodes.is_err());
 }
 
 #[test]
