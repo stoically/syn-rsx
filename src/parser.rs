@@ -12,12 +12,6 @@ use syn::{
 
 use crate::{node::*, punctuation::*};
 
-struct Tag {
-    name: NodeName,
-    attributes: Vec<Node>,
-    selfclosing: bool,
-}
-
 /// Configures the `Parser` behavior
 pub struct ParserConfig {
     /// Whether the returned node tree should be nested or flat. Defaults to `false`
@@ -109,12 +103,12 @@ impl Parser {
         if let Ok(_) = self.tag_close(&input.fork()) {
             return Err(fork.error("close tag has no corresponding open tag"));
         }
-        let tag_open = self.tag_open(fork)?;
+        let (name, attributes, selfclosing) = self.tag_open(fork)?;
 
         let mut children = vec![];
-        if !tag_open.selfclosing {
+        if !selfclosing {
             loop {
-                if !self.has_children(&tag_open, fork)? {
+                if !self.has_children(&name, fork)? {
                     break;
                 }
 
@@ -126,22 +120,22 @@ impl Parser {
         input.advance_to(fork);
 
         Ok(Node {
-            name: Some(tag_open.name),
+            name: Some(name),
             value: None,
             node_type: NodeType::Element,
-            attributes: tag_open.attributes,
+            attributes,
             children,
         })
     }
 
-    fn has_children(&self, tag_open: &Tag, input: ParseStream) -> Result<bool> {
+    fn has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
             return Err(input.error("open tag has no corresponding close tag"));
         }
 
-        if let Ok(tag_close_ident) = self.tag_close(&input.fork()) {
-            if tag_open.name == tag_close_ident {
+        if let Ok(tag_close_name) = self.tag_close(&input.fork()) {
+            if tag_open_name == &tag_close_name {
                 // if the next token is a matching close tag then there are no child nodes
                 return Ok(false);
             } else {
@@ -153,7 +147,7 @@ impl Parser {
         Ok(true)
     }
 
-    fn tag_open(&self, input: ParseStream) -> Result<Tag> {
+    fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool)> {
         input.parse::<Token![<]>()?;
         let name = self.node_name(input)?;
 
@@ -174,11 +168,7 @@ impl Parser {
         let parser = move |input: ParseStream| self.attributes(input);
         let attributes = parser.parse2(attributes)?;
 
-        Ok(Tag {
-            name,
-            attributes,
-            selfclosing,
-        })
+        Ok((name, attributes, selfclosing))
     }
 
     fn tag_open_end(&self, input: ParseStream) -> Result<bool> {
