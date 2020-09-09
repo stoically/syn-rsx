@@ -5,7 +5,7 @@
 ![build](https://github.com/stoically/syn-rsx/workflows/build/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
 
-[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html) aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros. 
+[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html), aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros. 
 
 ```rust
 use quote::quote;
@@ -68,19 +68,17 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   ```html
   <div>{ let block = "in node position"; }</div>
   <div { let block = "in attribute position"; } />
-  <div key={ let block = "in attribute value position"; }>
+  <div key={ let block = "in attribute value position"; } />
   ```
 
 - **Customization**
 
-  A [`ParserConfig`] to customize parsing behavior is available, so if you have
+  A `ParserConfig` to customize parsing behavior is available, so if you have
   slightly different requirements for parsing and it's not yet customizable
   feel free to open an issue or pull request to extend the configuration.
 
 
 [`syn`]: /syn
 [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
-[`Node`]: struct.Node.html
-[`ParserConfig`]: struct.ParserConfig.html
 [mod style path]: https://docs.rs/syn/1.0.40/syn/struct.Path.html#method.parse_mod_style
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
