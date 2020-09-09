@@ -1,6 +1,5 @@
 use quote::quote;
-use syn::Error;
-use syn_rsx::{parse2, parse2_with_config, ParserConfig};
+use syn_rsx::{parse2, parse2_with_config, NodeType, ParserConfig};
 
 #[test]
 fn test_single_empty_element() {
@@ -121,6 +120,18 @@ fn test_number_of_top_level_nodes() {
     };
 
     let config = ParserConfig::new().number_of_top_level_nodes(2);
+    let nodes = parse2_with_config(tokens, config);
+
+    assert!(nodes.is_err())
+}
+
+#[test]
+fn test_type_of_top_level_nodes() {
+    let tokens = quote! {
+        "foo"
+    };
+
+    let config = ParserConfig::new().type_of_top_level_nodes(NodeType::Element);
     let nodes = parse2_with_config(tokens, config);
 
     assert!(nodes.is_err())

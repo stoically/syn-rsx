@@ -1,6 +1,7 @@
 //! Tree of nodes
 
 use proc_macro2::Span;
+use std::fmt;
 use syn::{punctuated::Punctuated, spanned::Spanned, token::Colon, Expr, ExprPath, Ident, Lit};
 
 use crate::punctuation::Dash;
@@ -86,7 +87,7 @@ impl Node {
 }
 
 /// Type of the node
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NodeType {
     /// A HTMLElement tag, with optional children and attributes.
     /// Potentially selfclosing. Any tag name is valid.
@@ -102,6 +103,21 @@ pub enum NodeType {
 
     /// Arbitrary rust code in braced `{}` blocks
     Block,
+}
+
+impl fmt::Display for NodeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Element => "NodeType::Element",
+                Self::Attribute => "NodeType::Attribute",
+                Self::Text => "NodeType::Text",
+                Self::Block => "NodeType::Block",
+            }
+        )
+    }
 }
 
 /// Name of the node

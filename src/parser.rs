@@ -17,6 +17,7 @@ use crate::{node::*, punctuation::*};
 pub struct ParserConfig {
     flat_tree: bool,
     number_of_top_level_nodes: Option<usize>,
+    type_of_top_level_nodes: Option<NodeType>,
 }
 
 impl ParserConfig {
@@ -36,6 +37,12 @@ impl ParserConfig {
         self.number_of_top_level_nodes = Some(number);
         self
     }
+
+    /// Enforce the `NodeType` of top level nodes
+    pub fn type_of_top_level_nodes(mut self, node_type: NodeType) -> Self {
+        self.type_of_top_level_nodes = Some(node_type);
+        self
+    }
 }
 
 /// RSX Parser
@@ -53,8 +60,8 @@ impl Parser {
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         while !input.cursor().eof() {
-            if let Some(number_of_top_level_nodes) = self.config.number_of_top_level_nodes {
-                if nodes.len() >= number_of_top_level_nodes {
+            if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
+                if &nodes.len() >= number_of_top_level_nodes {
                     return Err(input.error(format!(
                         "Maximum number of allowed top level nodes exceeded: {}",
                         number_of_top_level_nodes
@@ -62,7 +69,18 @@ impl Parser {
                 }
             }
 
-            nodes.append(&mut self.node(input)?);
+            let parsed_nodes = &mut self.node(input)?;
+
+            if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
+                if &parsed_nodes[0].node_type != type_of_top_level_nodes {
+                    return Err(input.error(format!(
+                        "Top level nodes need to be of type {}",
+                        type_of_top_level_nodes
+                    )));
+                }
+            }
+
+            nodes.append(parsed_nodes);
         }
 
         Ok(nodes)
