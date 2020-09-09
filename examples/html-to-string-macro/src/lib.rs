@@ -24,12 +24,14 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<String, proc_macro2::TokenStream> {
             }
             NodeType::Attribute => {
                 out.push_str(&format!(" {}", node.name_as_string().unwrap()));
-                match node.value_as_string() {
-                    Some(value) => out.push_str(&format!("=\"{}\"", &value)),
-                    None => {
-                        return Err(
-                            quote! { compile_error!("Only String literals as attribute value are supported in this example") },
-                        )
+                if node.value.is_some() {
+                    match node.value_as_string() {
+                        Some(value) => out.push_str(&format!("=\"{}\"", &value)),
+                        None => {
+                            return Err(
+                                quote! { compile_error!("Only String literals as attribute value are supported in this example") },
+                            )
+                        }
                     }
                 }
             }
