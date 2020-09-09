@@ -1,12 +1,12 @@
 use quote::quote;
-use syn_rsx::{parse2, ParserConfig};
+use syn_rsx::{parse2, parse2_with_config, ParserConfig};
 
 #[test]
 fn test_single_empty_element() {
     let tokens = quote! {
         <foo></foo>
     };
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].name_as_string().unwrap(), "foo");
 }
 
@@ -15,7 +15,7 @@ fn test_single_element_with_attributes() {
     let tokens = quote! {
         <foo bar="moo" baz="42"></foo>
     };
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
 
     let attribute = &nodes[0].attributes[0];
     assert_eq!(attribute.name_as_string().unwrap(), "bar");
@@ -28,7 +28,7 @@ fn test_single_element_with_text() {
         <foo>"bar"</foo>
     };
 
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "bar");
 }
 
@@ -37,7 +37,7 @@ fn test_reserved_keyword_attributes() {
     let tokens = quote! {
         <input type="foo" />
     };
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
 
     assert_eq!(nodes[0].name_as_string().unwrap(), "input");
     assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "type");
@@ -48,7 +48,7 @@ fn test_block_node() {
     let tokens = quote! {
         <div>{hello}</div>
     };
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
 
     assert_eq!(nodes[0].children.len(), 1);
 }
@@ -67,7 +67,7 @@ fn test_flat_tree() {
         <div />
     };
 
-    let nodes = parse2(tokens, Some(config)).unwrap();
+    let nodes = parse2_with_config(tokens, config).unwrap();
     assert_eq!(nodes.len(), 7);
 }
 
@@ -77,7 +77,7 @@ fn test_path_as_tag_name() {
         <some::path />
     };
 
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].name_as_string().unwrap(), "some::path");
 }
 
@@ -87,7 +87,7 @@ fn test_dashed_attribute_name() {
         <div data-foo="bar" />
     };
 
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "data-foo");
 }
 
@@ -97,7 +97,7 @@ fn test_coloned_attribute_name() {
         <div on:click={foo} />
     };
 
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "on:click");
 }
 
@@ -107,6 +107,6 @@ fn test_block_as_attribute() {
         <div {attribute} />
     };
 
-    let nodes = parse2(tokens, None).unwrap();
+    let nodes = parse2(tokens).unwrap();
     assert_eq!(nodes[0].attributes.len(), 1);
 }

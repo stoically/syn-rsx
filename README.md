@@ -13,7 +13,7 @@ use syn_rsx::parse2;
 
 let tokens = quote! { <hello world>"hi"</hello> };
 
-let nodes = parse2(tokens, None).unwrap();
+let nodes = parse2(tokens).unwrap();
 assert_eq!(nodes[0].name_as_string().unwrap(), "hello");
 assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "world");
 assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");

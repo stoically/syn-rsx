@@ -8,7 +8,7 @@
 //!
 //! let tokens = quote! { <hello world>"hi"</hello> };
 //!
-//! let nodes = parse2(tokens, None).unwrap();
+//! let nodes = parse2(tokens).unwrap();
 //! assert_eq!(nodes[0].name_as_string().unwrap(), "hello");
 //! assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "world");
 //! assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
@@ -104,11 +104,22 @@ pub use parser::{Parser, ParserConfig};
 ///
 /// [`proc-macro::TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
-pub fn parse(tokens: proc_macro::TokenStream, config: Option<ParserConfig>) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| {
-        let config = config.unwrap_or_else(ParserConfig::default);
-        Parser::new(config).parse(input)
-    };
+pub fn parse(tokens: proc_macro::TokenStream) -> Result<Vec<Node>> {
+    let parser = move |input: ParseStream| Parser::new(ParserConfig::default()).parse(input);
+
+    parser.parse(tokens)
+}
+
+/// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree with custom [`ParserConfig`]
+///
+/// [`proc-macro::TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
+/// [`Node`]: struct.Node.html
+/// [`ParserConfig`]: struct.ParserConfig.html
+pub fn parse_with_config(
+    tokens: proc_macro::TokenStream,
+    config: ParserConfig,
+) -> Result<Vec<Node>> {
+    let parser = move |input: ParseStream| Parser::new(config).parse(input);
 
     parser.parse(tokens)
 }
@@ -117,11 +128,22 @@ pub fn parse(tokens: proc_macro::TokenStream, config: Option<ParserConfig>) -> R
 ///
 /// [`proc-macro2::TokenStream`]: https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
-pub fn parse2(tokens: proc_macro2::TokenStream, config: Option<ParserConfig>) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| {
-        let config = config.unwrap_or_else(ParserConfig::default);
-        Parser::new(config).parse(input)
-    };
+pub fn parse2(tokens: proc_macro2::TokenStream) -> Result<Vec<Node>> {
+    let parser = move |input: ParseStream| Parser::new(ParserConfig::default()).parse(input);
+
+    parser.parse2(tokens)
+}
+
+/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree with custom [`ParserConfig`]
+///
+/// [`proc-macro2::TokenStream`]: https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html
+/// [`Node`]: struct.Node.html
+/// [`ParserConfig`]: struct.ParserConfig.html
+pub fn parse2_with_config(
+    tokens: proc_macro2::TokenStream,
+    config: ParserConfig,
+) -> Result<Vec<Node>> {
+    let parser = move |input: ParseStream| Parser::new(config).parse(input);
 
     parser.parse2(tokens)
 }
