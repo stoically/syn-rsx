@@ -67,9 +67,7 @@ impl Node {
     /// Returns the `name`'s `Span` if it's `Some`
     pub fn name_span(&self) -> Option<Span> {
         match self.name.as_ref() {
-            Some(NodeName::Path(name)) => Some(name.span()),
-            Some(NodeName::Dash(name)) => Some(name.span()),
-            Some(NodeName::Colon(name)) => Some(name.span()),
+            Some(name) => Some(name.span()),
             None => None,
         }
     }
@@ -135,6 +133,17 @@ pub enum NodeName {
 
     /// Name separated by colons, e.g. `<div on:click={foo} />`
     Colon(Punctuated<Ident, Colon>),
+}
+
+impl NodeName {
+    /// Returns the `name`'s `Span`
+    pub fn span(&self) -> Span {
+        match self {
+            NodeName::Path(name) => name.span(),
+            NodeName::Dash(name) => name.span(),
+            NodeName::Colon(name) => name.span(),
+        }
+    }
 }
 
 impl PartialEq for NodeName {
