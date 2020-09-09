@@ -14,3 +14,6 @@ jobs:
           cargo fmt --all -- --check
           cargo test
           cargo build
+
+          cd examples/html-to-string-macro
+          cargo test

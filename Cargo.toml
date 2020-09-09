@@ -15,3 +15,8 @@ syn = { version = "1.0.39", features = ["full", "parsing", "extra-traits"] }
 
 [dev-dependencies]
 quote = "1.0.7"
+
+[workspace]
+members = [
+    "examples/html-to-string-macro"
+]
