@@ -1,7 +1,7 @@
 [package]
 name = "syn-rsx"
 description = "syn-powered parser for JSX-like TokenStreams"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["stoically <stoically@protonmail.com>"]
 keywords = ["syn", "jsx", "rsx", "html", "macro"]
 edition = "2018"
