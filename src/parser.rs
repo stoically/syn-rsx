@@ -60,15 +60,6 @@ impl Parser {
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         while !input.cursor().eof() {
-            if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
-                if &nodes.len() != number_of_top_level_nodes {
-                    return Err(input.error(format!(
-                        "Exact number of required top level nodes: {}",
-                        number_of_top_level_nodes
-                    )));
-                }
-            }
-
             let parsed_nodes = &mut self.node(input)?;
 
             if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
@@ -81,6 +72,15 @@ impl Parser {
             }
 
             nodes.append(parsed_nodes);
+        }
+
+        if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
+            if &nodes.len() != number_of_top_level_nodes {
+                return Err(input.error(format!(
+                    "Exact number of required top level nodes: {}",
+                    number_of_top_level_nodes
+                )));
+            }
         }
 
         Ok(nodes)

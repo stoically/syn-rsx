@@ -125,6 +125,13 @@ fn test_number_of_top_level_nodes() {
 
     let tokens = quote! {
         <div />
+        <div />
+    };
+    let nodes = parse2_with_config(tokens, config.clone());
+    assert!(nodes.is_ok());
+
+    let tokens = quote! {
+        <div />
     };
     let nodes = parse2_with_config(tokens, config);
     assert!(nodes.is_err());
