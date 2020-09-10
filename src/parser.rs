@@ -7,7 +7,7 @@ use syn::{
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
     token::{Brace, Colon},
-    Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
+    Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
 use crate::{node::*, punctuation::*};
@@ -172,7 +172,10 @@ impl Parser {
     fn has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
-            return Err(input.error("open tag has no corresponding close tag"));
+            return Err(Error::new(
+                tag_open_name.span(),
+                "open tag has no corresponding close tag",
+            ));
         }
 
         if let Ok(tag_close_name) = self.tag_close(&input.fork()) {
@@ -199,7 +202,7 @@ impl Parser {
             }
 
             if input.is_empty() {
-                return Err(input.error("expected valid attribute or closing caret >"));
+                return Err(input.error("expected closing caret >"));
             }
 
             let next: TokenTree = input.parse()?;
@@ -260,7 +263,7 @@ impl Parser {
             let eq = fork.parse::<Option<Token![=]>>()?;
             let value = if eq.is_some() {
                 if fork.is_empty() {
-                    return Err(fork.error("missing attribute value"));
+                    return Err(Error::new(key.span(), "missing attribute value"));
                 }
 
                 if fork.peek(Brace) {
