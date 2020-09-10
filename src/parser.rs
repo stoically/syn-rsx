@@ -59,26 +59,28 @@ impl Parser {
     /// Parse a given `syn::ParseStream`
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
+        let mut top_level_nodes = 0;
         while !input.cursor().eof() {
             let parsed_nodes = &mut self.node(input)?;
 
             if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
                 if &parsed_nodes[0].node_type != type_of_top_level_nodes {
                     return Err(input.error(format!(
-                        "Top level nodes need to be of type {}",
+                        "top level nodes need to be of type {}",
                         type_of_top_level_nodes
                     )));
                 }
             }
 
             nodes.append(parsed_nodes);
+            top_level_nodes += 1;
         }
 
         if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
-            if &nodes.len() != number_of_top_level_nodes {
+            if &top_level_nodes != number_of_top_level_nodes {
                 return Err(input.error(format!(
-                    "Exact number of required top level nodes: {}",
-                    number_of_top_level_nodes
+                    "saw {} top level nodes but exactly {} are required",
+                    top_level_nodes, number_of_top_level_nodes
                 )));
             }
         }

@@ -124,10 +124,12 @@ fn test_number_of_top_level_nodes() {
     assert!(nodes.is_err());
 
     let tokens = quote! {
-        <div />
+        <div>
+            <div />
+        </div>
         <div />
     };
-    let nodes = parse2_with_config(tokens, config.clone());
+    let nodes = parse2_with_config(tokens, config.clone().flat_tree());
     assert!(nodes.is_ok());
 
     let tokens = quote! {
