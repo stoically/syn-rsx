@@ -1,5 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
+use syn::{spanned::Spanned, Error};
 use syn_rsx::{parse, Node, NodeType};
 
 fn walk_nodes(nodes: Vec<Node>) -> Result<String, proc_macro2::TokenStream> {
@@ -27,19 +28,21 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<String, proc_macro2::TokenStream> {
                 if node.value.is_some() {
                     match node.value_as_string() {
                         Some(value) => out.push_str(&format!("=\"{}\"", &value)),
-                        None => {
-                            return Err(
-                                quote! { compile_error!("Only String literals as attribute value are supported in this example") },
-                            )
-                        }
+                        None => return Err(Error::new(
+                            node.name_span().unwrap(),
+                            "Only String literals as attribute value are supported in this example",
+                        )
+                        .to_compile_error()),
                     }
                 }
             }
             NodeType::Text => out.push_str(&node.value_as_string().unwrap()),
             NodeType::Block => {
-                return Err(
-                    quote! { compile_error!("NodeType::Block is not supported in this example") },
+                return Err(Error::new(
+                    node.value_as_block().unwrap().span(),
+                    "NodeType::Block is not supported in this example",
                 )
+                .to_compile_error())
             }
         }
     }
