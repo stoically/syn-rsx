@@ -10,4 +10,4 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1.0.20"
 quote = "1.0.7"
-syn-rsx = { version = "0.7.1", path = "../.." }
+syn-rsx = { version = "0.7.2", path = "../.." }
