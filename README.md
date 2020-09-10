@@ -71,6 +71,16 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   <div key={ let block = "in attribute value position"; } />
   ```
 
+- **Helpful error reporting out of the box**
+
+  ```rust,no-run
+  error: open tag has no corresponding close tag and is not self-closing
+  --> examples/html-to-string-macro/tests/lib.rs:5:24
+    |
+  5 |     html_to_string! { <div> };
+    |                        ^^^
+  ```
+
 - **Customization**
 
   A `ParserConfig` to customize parsing behavior is available, so if you have

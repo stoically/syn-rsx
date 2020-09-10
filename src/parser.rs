@@ -144,10 +144,10 @@ impl Parser {
         if let Ok(_) = self.tag_close(&input.fork()) {
             return Err(fork.error("close tag has no corresponding open tag"));
         }
-        let (name, attributes, selfclosing) = self.tag_open(fork)?;
+        let (name, attributes, self_closing) = self.tag_open(fork)?;
 
         let mut children = vec![];
-        if !selfclosing {
+        if !self_closing {
             loop {
                 if !self.has_children(&name, fork)? {
                     break;
@@ -174,7 +174,7 @@ impl Parser {
         if input.is_empty() {
             return Err(Error::new(
                 tag_open_name.span(),
-                "open tag has no corresponding close tag",
+                "open tag has no corresponding close tag and is not self-closing",
             ));
         }
 
@@ -196,9 +196,9 @@ impl Parser {
         let name = self.node_name(input)?;
 
         let mut attributes = TokenStream::new();
-        let selfclosing = loop {
-            if let Ok(selfclosing) = self.tag_open_end(input) {
-                break selfclosing;
+        let self_closing = loop {
+            if let Ok(self_closing) = self.tag_open_end(input) {
+                break self_closing;
             }
 
             if input.is_empty() {
@@ -212,14 +212,14 @@ impl Parser {
         let parser = move |input: ParseStream| self.attributes(input);
         let attributes = parser.parse2(attributes)?;
 
-        Ok((name, attributes, selfclosing))
+        Ok((name, attributes, self_closing))
     }
 
     fn tag_open_end(&self, input: ParseStream) -> Result<bool> {
-        let selfclosing = input.parse::<Option<Token![/]>>()?.is_some();
+        let self_closing = input.parse::<Option<Token![/]>>()?.is_some();
         input.parse::<Token![>]>()?;
 
-        Ok(selfclosing)
+        Ok(self_closing)
     }
 
     fn tag_close(&self, input: ParseStream) -> Result<NodeName> {
