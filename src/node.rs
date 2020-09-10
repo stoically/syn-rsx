@@ -2,7 +2,9 @@
 
 use proc_macro2::Span;
 use std::fmt;
-use syn::{punctuated::Punctuated, spanned::Spanned, token::Colon, Expr, ExprPath, Ident, Lit};
+use syn::{
+    punctuated::Punctuated, spanned::Spanned, token::Colon, Expr, ExprBlock, ExprPath, Ident, Lit,
+};
 
 use crate::punctuation::Dash;
 
@@ -37,7 +39,7 @@ pub struct Node {
 }
 
 impl Node {
-    /// Returns `name` as `String` if it's `Some`
+    /// Returns `String` if `name` is `Some`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
             Some(NodeName::Path(expr)) => Some(
@@ -64,7 +66,7 @@ impl Node {
         }
     }
 
-    /// Returns the `name`'s `Span` if it's `Some`
+    /// Returns `Span` if `name` is `Some`
     pub fn name_span(&self) -> Option<Span> {
         match self.name.as_ref() {
             Some(name) => Some(name.span()),
@@ -72,13 +74,21 @@ impl Node {
         }
     }
 
-    /// Returns `value` as `String` if it's a `Lit::Str` expression
+    /// Returns `String` if `value` is a `Lit::Str` expression
     pub fn value_as_string(&self) -> Option<String> {
         match self.value.as_ref() {
             Some(Expr::Lit(expr)) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
                 _ => None,
             },
+            _ => None,
+        }
+    }
+
+    /// Returns `ExprBlock` if `value` is a `Expr::Block` expression
+    pub fn value_as_block(&self) -> Option<ExprBlock> {
+        match self.value.as_ref() {
+            Some(Expr::Block(expr)) => Some(expr.to_owned()),
             _ => None,
         }
     }
@@ -94,9 +104,11 @@ pub enum NodeType {
     /// Attributes of opening tags. Every attribute is itself a node.
     Attribute,
 
-    /// Quoted text. It's planned to support unquoted text as well
+    /// Quoted text. It's [planned to support unquoted text] as well
     /// using span start and end, but that currently only works
     /// with nightly rust
+    ///
+    /// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
     Text,
 
     /// Arbitrary rust code in braced `{}` blocks
@@ -136,7 +148,7 @@ pub enum NodeName {
 }
 
 impl NodeName {
-    /// Returns the `name`'s `Span`
+    /// Returns the `Span` of this `NodeName`
     pub fn span(&self) -> Span {
         match self {
             NodeName::Path(name) => name.span(),
