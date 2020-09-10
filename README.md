@@ -32,11 +32,11 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 
 - **Text nodes**
 
-  Support for [unquoted text is planned] (currently requires Rust nightly)
-
   ```html
   <div>"String literal"</div>
   ```
+
+  Support for [unquoted text is planned]
 
 - **Node names separated by dash or colon**
 

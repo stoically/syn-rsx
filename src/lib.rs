@@ -31,8 +31,6 @@
 //!
 //! - **Text nodes**
 //!
-//!   Support for [unquoted text is planned] (currently requires Rust nightly)
-//!
 //!   ```rust
 //!   # use quote::quote;
 //!   # use syn_rsx::parse2;
@@ -40,6 +38,8 @@
 //!   <div>"String literal"</div>
 //!   # }).unwrap();
 //!   ```
+//!
+//!   Support for [unquoted text is planned]
 //!
 //! - **Node names separated by dash or colon**
 //!
