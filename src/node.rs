@@ -11,30 +11,29 @@ use crate::punctuation::Dash;
 /// Node in the tree
 #[derive(Debug)]
 pub struct Node {
-    /// Name according to the `NodeType`:
+    /// Name according to the `NodeType`
     ///
-    /// - `Element`: Name of the element
-    /// - `Attribute`: Key of the element attribute
-    /// - `Text`: `None`
-    /// - `Block`: `None`
+    /// - Element: Name of the element
+    /// - Attribute: Key of the element attribute
+    /// - Text: `None`
+    /// - Block: `None`
     pub name: Option<NodeName>,
 
     /// Type of the nodes
     pub node_type: NodeType,
 
-    /// Value according to the `NodeType`:
+    /// Value according to the `NodeType`
     ///
-    /// - `Element`: `None`
-    /// - `Attribute`: Any valid `syn::Expr`
-    /// - `Text`: `syn::Expr::Lit`
-    /// - `Block`: `syn::Expr::Block`
+    /// - Element: `None`
+    /// - Attribute: Any valid `syn::Expr`
+    /// - Text: `syn::Expr::Lit`
+    /// - Block: `syn::Expr::Block`
     pub value: Option<Expr>,
 
-    /// Has nodes if `NodeType::Element`. Attributes are
-    /// `NodeType::Attribute` or `NodeType::Block`
+    /// Attributes of `NodeType::Element` are `NodeType::Attribute` or `NodeType::Block`
     pub attributes: Vec<Node>,
 
-    /// Has nodes if `NodeType::Element`
+    /// Children of `NodeType::Element` are `NodeType::Element`, `NodeType::Text` or `NodeType::Block`
     pub children: Vec<Node>,
 }
 
