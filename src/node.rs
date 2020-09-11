@@ -114,11 +114,8 @@ impl fmt::Display for NodeType {
 /// Name of the node
 #[derive(Debug)]
 pub enum NodeName {
-    /// [Mod style path] containing no path arguments on any of its segments. A
-    /// plain identifier like `div` is a path of length 1.
-    ///
-    /// [Mod style path]:
-    /// https://docs.rs/syn/1.0.30/syn/struct.Path.html#method.parse_mod_style
+    /// Path potentially separated by double colons, e.g. `<foo::bar />`. A
+    /// plain identifier like `div` is a path of length 1, e.g. `<div />`
     Path(ExprPath),
 
     /// Name separated by dashes, e.g. `<div data-foo="bar" />`

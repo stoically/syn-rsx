@@ -41,7 +41,7 @@
 //!
 //!   Support for [unquoted text is planned]
 //!
-//! - **Node names separated by dash or colon**
+//! - **Node names separated by dash, colon or double colon**
 //!
 //!   ```rust
 //!   # use quote::quote;
@@ -49,16 +49,7 @@
 //!   # parse2(quote! {
 //!   <tag-name attribute-key="value" />
 //!   <tag:name attribute:key="value" />
-//!   # }).unwrap();
-//!   ```
-//!
-//! - **Node names as [mod style path]**
-//!
-//!   ```rust
-//!   # use quote::quote;
-//!   # use syn_rsx::parse2;
-//!   # parse2(quote! {
-//!   <tag::path attribute::path="value" />
+//!   <tag::name attribute::key="value" />
 //!   # }).unwrap();
 //!   ```
 //!

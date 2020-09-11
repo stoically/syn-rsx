@@ -300,45 +300,52 @@ impl Parser {
     }
 
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
-        let node_name = if input.peek2(Colon2) {
-            self.node_name_mod_style(input)?
+        if input.peek2(Colon2) {
+            self.node_name_punctuated_ident::<Colon2, fn(_) -> Colon2, PathSegment>(input, Colon2)
+                .map(|segments| {
+                    NodeName::Path(ExprPath {
+                        attrs: vec![],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments,
+                        },
+                    })
+                })
         } else if input.peek2(Colon) {
-            self.node_name_punctuated_ident::<Colon, fn(_) -> Colon>(input, Colon)
-                .map(|ok| NodeName::Colon(ok))?
+            self.node_name_punctuated_ident::<Colon, fn(_) -> Colon, Ident>(input, Colon)
+                .map(|ok| NodeName::Colon(ok))
         } else if input.peek2(Dash) {
-            self.node_name_punctuated_ident::<Dash, fn(_) -> Dash>(input, Dash)
-                .map(|ok| NodeName::Dash(ok))?
+            self.node_name_punctuated_ident::<Dash, fn(_) -> Dash, Ident>(input, Dash)
+                .map(|ok| NodeName::Dash(ok))
         } else if input.peek(Ident::peek_any) {
             let mut segments = Punctuated::new();
             let ident = Ident::parse_any(input)?;
             segments.push_value(PathSegment::from(ident));
-
-            NodeName::Path(ExprPath {
+            Ok(NodeName::Path(ExprPath {
                 attrs: vec![],
                 qself: None,
                 path: Path {
                     leading_colon: None,
                     segments,
                 },
-            })
+            }))
         } else {
             return Err(input.error("invalid tag name or attribute key"));
-        };
-
-        Ok(node_name)
+        }
     }
 
-    fn node_name_punctuated_ident<T: Parse, F: Peek>(
+    fn node_name_punctuated_ident<T: Parse, F: Peek, X: From<Ident>>(
         &self,
         input: ParseStream,
         punct: F,
-    ) -> Result<Punctuated<Ident, T>> {
+    ) -> Result<Punctuated<X, T>> {
         let fork = &input.fork();
-        let mut segments = Punctuated::<Ident, T>::new();
+        let mut segments = Punctuated::<X, T>::new();
 
         while !fork.is_empty() && fork.peek(Ident::peek_any) {
             let ident = Ident::parse_any(fork)?;
-            segments.push_value(ident.clone());
+            segments.push_value(ident.clone().into());
 
             if fork.peek(punct) {
                 segments.push_punct(fork.parse()?);
@@ -353,52 +360,5 @@ impl Parser {
         } else {
             Err(fork.error("expected punctuated node name"))
         }
-    }
-
-    // Modified version of `Path::parse_mod_style` that uses `Ident::peek_any`
-    // in order to allow parsing reserved keywords
-    //
-    // https://docs.rs/syn/1.0.30/src/syn/path.rs.html#388-418
-    // TODO: consider PR upstream
-    fn node_name_mod_style(&self, input: ParseStream) -> Result<NodeName> {
-        let given_input = input;
-        let input = &input.fork();
-
-        let path = Path {
-            leading_colon: input.parse()?,
-            segments: {
-                let mut segments = Punctuated::new();
-                loop {
-                    if !input.peek(Ident::peek_any)
-                        && !input.peek(Token![super])
-                        && !input.peek(Token![self])
-                        && !input.peek(Token![Self])
-                        && !input.peek(Token![crate])
-                    {
-                        break;
-                    }
-                    let ident = Ident::parse_any(input)?;
-                    segments.push_value(PathSegment::from(ident));
-                    if !input.peek(Token![::]) {
-                        break;
-                    }
-                    let punct = input.parse()?;
-                    segments.push_punct(punct);
-                }
-                if segments.is_empty() {
-                    return Err(input.error("expected path"));
-                } else if segments.trailing_punct() {
-                    return Err(input.error("expected path segment"));
-                }
-                segments
-            },
-        };
-        given_input.advance_to(input);
-
-        Ok(NodeName::Path(ExprPath {
-            attrs: vec![],
-            qself: None,
-            path,
-        }))
     }
 }

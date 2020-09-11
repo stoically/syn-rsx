@@ -38,17 +38,12 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 
   Support for [unquoted text is planned]
 
-- **Node names separated by dash or colon**
+- **Node names separated by dash, colon or double colon**
 
   ```html
   <tag-name attribute-key="value" />
   <tag:name attribute:key="value" />
-  ```
-
-- **Node names as [mod style path]**
-
-  ```html
-  <tag::path attribute::path="value" />
+  <tag::name attribute::key="value" />
   ```
 
 - **Node names with reserved keywords**
@@ -90,5 +85,4 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 
 [`syn`]: /syn
 [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
-[mod style path]: https://docs.rs/syn/1.0.40/syn/struct.Path.html#method.parse_mod_style
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
