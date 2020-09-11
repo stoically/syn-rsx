@@ -135,27 +135,31 @@ impl NodeName {
     }
 }
 
-impl ToString for NodeName {
-    fn to_string(&self) -> String {
-        match self {
-            NodeName::Path(expr) => expr
-                .path
-                .segments
-                .iter()
-                .map(|segment| segment.ident.to_string())
-                .collect::<Vec<String>>()
-                .join("::"),
-            NodeName::Dash(name) => name
-                .iter()
-                .map(|ident| ident.to_string())
-                .collect::<Vec<String>>()
-                .join("-"),
-            NodeName::Colon(name) => name
-                .iter()
-                .map(|ident| ident.to_string())
-                .collect::<Vec<String>>()
-                .join(":"),
-        }
+impl fmt::Display for NodeName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                NodeName::Path(expr) => expr
+                    .path
+                    .segments
+                    .iter()
+                    .map(|segment| segment.ident.to_string())
+                    .collect::<Vec<String>>()
+                    .join("::"),
+                NodeName::Dash(name) => name
+                    .iter()
+                    .map(|ident| ident.to_string())
+                    .collect::<Vec<String>>()
+                    .join("-"),
+                NodeName::Colon(name) => name
+                    .iter()
+                    .map(|ident| ident.to_string())
+                    .collect::<Vec<String>>()
+                    .join(":"),
+            }
+        )
     }
 }
 
