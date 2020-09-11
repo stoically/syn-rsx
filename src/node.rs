@@ -42,26 +42,7 @@ impl Node {
     /// Returns `String` if `name` is `Some`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
-            Some(NodeName::Path(expr)) => Some(
-                expr.path
-                    .segments
-                    .iter()
-                    .map(|segment| segment.ident.to_string())
-                    .collect::<Vec<String>>()
-                    .join("::"),
-            ),
-            Some(NodeName::Dash(name)) => Some(
-                name.iter()
-                    .map(|ident| ident.to_string())
-                    .collect::<Vec<String>>()
-                    .join("-"),
-            ),
-            Some(NodeName::Colon(name)) => Some(
-                name.iter()
-                    .map(|ident| ident.to_string())
-                    .collect::<Vec<String>>()
-                    .join(":"),
-            ),
+            Some(name) => Some(name.to_string()),
             None => None,
         }
     }
@@ -134,7 +115,7 @@ impl fmt::Display for NodeType {
 #[derive(Debug)]
 pub enum NodeName {
     /// [Mod style path] containing no path arguments on any of its segments. A
-    /// plain identifier like `x` is a path of length 1.
+    /// plain identifier like `div` is a path of length 1.
     ///
     /// [Mod style path]:
     /// https://docs.rs/syn/1.0.30/syn/struct.Path.html#method.parse_mod_style
@@ -154,6 +135,30 @@ impl NodeName {
             NodeName::Path(name) => name.span(),
             NodeName::Dash(name) => name.span(),
             NodeName::Colon(name) => name.span(),
+        }
+    }
+}
+
+impl ToString for NodeName {
+    fn to_string(&self) -> String {
+        match self {
+            NodeName::Path(expr) => expr
+                .path
+                .segments
+                .iter()
+                .map(|segment| segment.ident.to_string())
+                .collect::<Vec<String>>()
+                .join("::"),
+            NodeName::Dash(name) => name
+                .iter()
+                .map(|ident| ident.to_string())
+                .collect::<Vec<String>>()
+                .join("-"),
+            NodeName::Colon(name) => name
+                .iter()
+                .map(|ident| ident.to_string())
+                .collect::<Vec<String>>()
+                .join(":"),
         }
     }
 }
