@@ -1,13 +1,13 @@
 //! RSX Parser
 
 use proc_macro2::{TokenStream, TokenTree};
-use std::iter;
 use syn::{
+    braced,
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
-    token::{Brace, Colon},
-    Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
+    token::{Brace, Colon, Colon2},
+    Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
 use crate::{node::*, punctuation::*};
@@ -133,9 +133,16 @@ impl Parser {
 
     fn block_expr(&self, input: ParseStream) -> Result<Expr> {
         let fork = input.fork();
-        let parser = move |input: ParseStream| input.parse();
-        let group: TokenTree = fork.parse()?;
-        let block: ExprBlock = parser.parse2(iter::once(group).collect())?;
+        let content;
+        let brace_token = braced!(content in fork);
+        let block = ExprBlock {
+            attrs: vec![],
+            label: None,
+            block: Block {
+                brace_token,
+                stmts: Block::parse_within(&content)?,
+            },
+        };
         input.advance_to(&fork);
 
         Ok(block.into())
@@ -211,8 +218,12 @@ impl Parser {
             attributes.extend(Some(next));
         };
 
-        let parser = move |input: ParseStream| self.attributes(input);
-        let attributes = parser.parse2(attributes)?;
+        let attributes = if !attributes.is_empty() {
+            let parser = move |input: ParseStream| self.attributes(input);
+            parser.parse2(attributes)?
+        } else {
+            vec![]
+        };
 
         Ok((name, attributes, self_closing))
     }
@@ -289,15 +300,30 @@ impl Parser {
     }
 
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
-        let node_name = self
-            .node_name_punctuated_ident::<Dash, fn(_) -> Dash>(input, Dash)
-            .map(|ok| NodeName::Dash(ok))
-            .or_else(|_| {
-                self.node_name_punctuated_ident::<Colon, fn(_) -> Colon>(input, Colon)
-                    .map(|ok| NodeName::Colon(ok))
+        let node_name = if input.peek2(Colon2) {
+            self.node_name_mod_style(input)?
+        } else if input.peek2(Colon) {
+            self.node_name_punctuated_ident::<Colon, fn(_) -> Colon>(input, Colon)
+                .map(|ok| NodeName::Colon(ok))?
+        } else if input.peek2(Dash) {
+            self.node_name_punctuated_ident::<Dash, fn(_) -> Dash>(input, Dash)
+                .map(|ok| NodeName::Dash(ok))?
+        } else if input.peek(Ident::peek_any) {
+            let mut segments = Punctuated::new();
+            let ident = Ident::parse_any(input)?;
+            segments.push_value(PathSegment::from(ident));
+
+            NodeName::Path(ExprPath {
+                attrs: vec![],
+                qself: None,
+                path: Path {
+                    leading_colon: None,
+                    segments,
+                },
             })
-            .or_else(|_| self.node_name_mod_style(input))
-            .or(Err(input.error("invalid tag name or attribute key")))?;
+        } else {
+            return Err(input.error("invalid tag name or attribute key"));
+        };
 
         Ok(node_name)
     }
