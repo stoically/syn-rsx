@@ -14,11 +14,11 @@ bench = false
 
 [dependencies]
 proc-macro2 = "1.0.20"
+quote = "1.0.7"
 syn = { version = "1.0.39", features = ["full", "parsing", "extra-traits"] }
 
 [dev-dependencies]
 criterion = "=0.3.2"
-quote = "1.0.7"
 
 [[bench]]
 name = "bench"

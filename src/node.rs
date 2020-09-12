@@ -1,6 +1,7 @@
 //! Tree of nodes
 
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
+use quote::ToTokens;
 use std::fmt;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Colon, Expr, ExprBlock, ExprPath, Ident, Lit,
@@ -178,6 +179,16 @@ impl PartialEq for NodeName {
                 Self::Colon(other) => this == other,
                 _ => false,
             },
+        }
+    }
+}
+
+impl ToTokens for NodeName {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            NodeName::Path(name) => name.to_tokens(tokens),
+            NodeName::Dash(name) => name.to_tokens(tokens),
+            NodeName::Colon(name) => name.to_tokens(tokens),
         }
     }
 }
