@@ -114,8 +114,8 @@ impl fmt::Display for NodeType {
 /// Name of the node
 #[derive(Debug)]
 pub enum NodeName {
-    /// Path potentially separated by double colons, e.g. `<foo::bar />`. A
-    /// plain identifier like `div` is a path of length 1, e.g. `<div />`
+    /// A plain identifier like `div` is a path of length 1, e.g. `<div />`. Can
+    /// be separated by double colons, e.g. `<foo::bar />`
     Path(ExprPath),
 
     /// Name separated by dashes, e.g. `<div data-foo="bar" />`
