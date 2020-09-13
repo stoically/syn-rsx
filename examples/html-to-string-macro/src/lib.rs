@@ -37,8 +37,7 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                     values.push(node.value.unwrap());
                 }
             }
-            NodeType::Text => out.push_str(&node.value_as_string().unwrap()),
-            NodeType::Block => {
+            NodeType::Text | NodeType::Block => {
                 out.push_str("{}");
                 values.push(node.value.unwrap());
             }
