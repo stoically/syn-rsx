@@ -20,6 +20,13 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                 }
                 out.push_str(">");
 
+                // https://developer.mozilla.org/en-US/docs/Glossary/Empty_element
+                match name.as_str() {
+                    "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
+                    | "meta" | "param" | "source" | "track" | "wbr" => continue,
+                    _ => (),
+                }
+
                 match walk_nodes(node.children) {
                     Ok((html_string, children_values)) => {
                         out.push_str(&html_string);
