@@ -58,11 +58,12 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   <div key=some::value() />
   ```
 
-- **Doctypes and Comments**
+- **Doctypes, Comments and Fragments**
 
   ```html
   <!DOCTYPE html>
   <!-- "comment" -->
+  <></>
   ```
 
 - **Braced blocks are parsed as arbitrary Rust code**

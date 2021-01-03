@@ -137,6 +137,8 @@ impl Parser {
                 } else {
                     self.comment(input)
                 }
+            } else if input.peek2(Token![>]) {
+                self.fragment(input)
             } else {
                 self.element(input)
             }
@@ -444,6 +446,47 @@ impl Parser {
             attributes: vec![],
             children: vec![],
         })
+    }
+
+    fn fragment(&self, input: ParseStream) -> Result<Node> {
+        self.fragment_open(input)?;
+
+        let mut children = vec![];
+        loop {
+            if input.is_empty() {
+                return Err(input.error("unexpected end of input"));
+            }
+
+            if let Ok(_) = self.fragment_close(&input.fork()) {
+                self.fragment_close(input)?;
+                break;
+            }
+
+            children.append(&mut self.node(input)?);
+        }
+
+        Ok(Node {
+            name: None,
+            value: None,
+            node_type: NodeType::Fragment,
+            attributes: vec![],
+            children,
+        })
+    }
+
+    fn fragment_open(&self, input: ParseStream) -> Result<()> {
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![>]>()?;
+
+        Ok(())
+    }
+
+    fn fragment_close(&self, input: ParseStream) -> Result<()> {
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![/]>()?;
+        input.parse::<Token![>]>()?;
+
+        Ok(())
     }
 
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {

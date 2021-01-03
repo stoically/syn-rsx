@@ -102,6 +102,9 @@ pub enum NodeType {
     /// node value in this case
     Doctype,
 
+    /// Fragment: `<></>`
+    Fragment,
+
     /// Arbitrary rust code in braced `{}` blocks
     Block,
 }
@@ -117,6 +120,7 @@ impl fmt::Display for NodeType {
                 Self::Text => "NodeType::Text",
                 Self::Comment => "NodeType::Comment",
                 Self::Doctype => "NodeType::Doctype",
+                Self::Fragment => "NodeType::Fragment",
                 Self::Block => "NodeType::Block",
             }
         )

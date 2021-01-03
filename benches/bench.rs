@@ -4,7 +4,7 @@ use quote::quote;
 fn criterion_benchmark(c: &mut Criterion) {
     let tokens = quote! {
         <!DOCTYPE html>
-        <div>
+        <>
             <!-- "comment" -->
             <hello world />
             <div>"String literal"</div>
@@ -16,7 +16,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             <div>{ let block = "in node position"; }</div>
             <div { let block = "in attribute position"; } />
             <div key={ let block = "in attribute value position"; } />
-        </div>
+        </>
     };
 
     c.bench_function("syn_rsx::parse2", |b| {

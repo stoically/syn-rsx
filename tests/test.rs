@@ -227,3 +227,16 @@ fn test_comment() {
         Some("comment2".to_owned())
     );
 }
+
+#[test]
+fn test_fragment() {
+    let tokens = quote! {
+        <>
+            <div />
+        </>
+    };
+
+    let nodes = parse2(tokens);
+
+    assert!(nodes.is_ok());
+}
