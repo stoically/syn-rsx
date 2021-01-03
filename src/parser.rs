@@ -131,7 +131,11 @@ impl Parser {
 
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
         let node = if input.peek(Token![<]) {
-            self.element(input)
+            if input.peek2(Token![!]) && input.peek3(Ident) {
+                self.doctype(input)
+            } else {
+                self.element(input)
+            }
         } else if input.peek(Brace) {
             self.block(input)
         } else {
@@ -239,65 +243,36 @@ impl Parser {
 
     fn element(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
-        if input.peek2(Token![!]) && input.peek3(Ident) {
-            input.parse::<Token![<]>()?;
-            input.parse::<Token![!]>()?;
-            let ident = input.parse::<Ident>()?;
-            if ident.to_string().to_lowercase() != "doctype" {
-                return Err(input.error("expected Doctype"));
-            }
-            let doctype = input.parse::<Ident>()?;
-            input.parse::<Token![>]>()?;
 
-            let mut segments = Punctuated::new();
-            segments.push_value(PathSegment::from(doctype));
-            let name = NodeName::Path(ExprPath {
-                attrs: vec![],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments,
-                },
-            });
+        if let Ok(_) = self.tag_close(&input.fork()) {
+            return Err(fork.error("close tag has no corresponding open tag"));
+        }
+        let (name, attributes, self_closing) = self.tag_open(fork)?;
 
-            Ok(Node {
-                name: Some(name),
-                value: None,
-                node_type: NodeType::Doctype,
-                attributes: vec![],
-                children: vec![],
-            })
-        } else {
-            if let Ok(_) = self.tag_close(&input.fork()) {
-                return Err(fork.error("close tag has no corresponding open tag"));
-            }
-            let (name, attributes, self_closing) = self.tag_open(fork)?;
-
-            let mut children = vec![];
-            if !self_closing {
-                loop {
-                    if !self.has_children(&name, fork)? {
-                        break;
-                    }
-
-                    children.append(&mut self.node(fork)?);
+        let mut children = vec![];
+        if !self_closing {
+            loop {
+                if !self.element_has_children(&name, fork)? {
+                    break;
                 }
 
-                self.tag_close(fork)?;
+                children.append(&mut self.node(fork)?);
             }
-            input.advance_to(fork);
 
-            Ok(Node {
-                name: Some(name),
-                value: None,
-                node_type: NodeType::Element,
-                attributes,
-                children,
-            })
+            self.tag_close(fork)?;
         }
+        input.advance_to(fork);
+
+        Ok(Node {
+            name: Some(name),
+            value: None,
+            node_type: NodeType::Element,
+            attributes,
+            children,
+        })
     }
 
-    fn has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
+    fn element_has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
         // an empty input at this point means the tag wasn't closed
         if input.is_empty() {
             return Err(Error::new(
@@ -416,6 +391,36 @@ impl Parser {
                 children: vec![],
             })
         }
+    }
+
+    fn doctype(&self, input: ParseStream) -> Result<Node> {
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![!]>()?;
+        let ident = input.parse::<Ident>()?;
+        if ident.to_string().to_lowercase() != "doctype" {
+            return Err(input.error("expected Doctype"));
+        }
+        let doctype = input.parse::<Ident>()?;
+        input.parse::<Token![>]>()?;
+
+        let mut segments = Punctuated::new();
+        segments.push_value(PathSegment::from(doctype));
+        let name = NodeName::Path(ExprPath {
+            attrs: vec![],
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments,
+            },
+        });
+
+        Ok(Node {
+            name: Some(name),
+            value: None,
+            node_type: NodeType::Doctype,
+            attributes: vec![],
+            children: vec![],
+        })
     }
 
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
