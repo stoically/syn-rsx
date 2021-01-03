@@ -113,14 +113,12 @@ fn test_block_as_attribute() {
 
 #[test]
 fn test_number_of_top_level_nodes() {
-    let config = ParserConfig::new().number_of_top_level_nodes(2);
-
     let tokens = quote! {
         <div />
         <div />
         <div />
     };
-    let nodes = parse2_with_config(tokens, config.clone());
+    let nodes = parse2_with_config(tokens, ParserConfig::new().number_of_top_level_nodes(2));
     assert!(nodes.is_err());
 
     let tokens = quote! {
@@ -129,13 +127,16 @@ fn test_number_of_top_level_nodes() {
         </div>
         <div />
     };
-    let nodes = parse2_with_config(tokens, config.clone().flat_tree());
+    let nodes = parse2_with_config(
+        tokens,
+        ParserConfig::new().number_of_top_level_nodes(2).flat_tree(),
+    );
     assert!(nodes.is_ok());
 
     let tokens = quote! {
         <div />
     };
-    let nodes = parse2_with_config(tokens, config);
+    let nodes = parse2_with_config(tokens, ParserConfig::new().number_of_top_level_nodes(2));
     assert!(nodes.is_err());
 }
 
@@ -149,4 +150,48 @@ fn test_type_of_top_level_nodes() {
     let nodes = parse2_with_config(tokens, config);
 
     assert!(nodes.is_err())
+}
+
+#[test]
+fn test_transform_block_some() {
+    use syn::{Expr, Lit, Stmt, Token};
+
+    let tokens = quote! {
+        <div>{%}</div>
+    };
+
+    let config = ParserConfig::new().transform_block(|input| {
+        input.parse::<Token![%]>()?;
+        Ok(Some(quote! { "percent" }))
+    });
+
+    let nodes = parse2_with_config(tokens, config).unwrap();
+
+    assert_eq!(
+        match &nodes[0].children[0].value {
+            Some(Expr::Block(expr)) => {
+                match &expr.block.stmts[0] {
+                    Stmt::Expr(Expr::Lit(expr)) => match &expr.lit {
+                        Lit::Str(lit_str) => Some(lit_str.value()),
+                        _ => None,
+                    },
+                    _ => None,
+                }
+            }
+            _ => None,
+        },
+        Some("percent".to_owned())
+    )
+}
+
+#[test]
+fn test_transform_block_none() {
+    let tokens = quote! {
+        <div>{"foo"}</div>
+    };
+
+    let config = ParserConfig::new().transform_block(|_| Ok(None));
+    let nodes = parse2_with_config(tokens, config);
+
+    assert!(nodes.is_ok())
 }

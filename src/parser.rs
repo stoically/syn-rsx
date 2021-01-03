@@ -1,6 +1,6 @@
 //! RSX Parser
 
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::{Span, TokenStream, TokenTree};
 use syn::{
     braced,
     ext::IdentExt,
@@ -13,11 +13,12 @@ use syn::{
 use crate::{node::*, punctuation::*};
 
 /// Configures the `Parser` behavior
-#[derive(Debug, Clone, Default)]
+#[derive(Default)]
 pub struct ParserConfig {
     flat_tree: bool,
     number_of_top_level_nodes: Option<usize>,
     type_of_top_level_nodes: Option<NodeType>,
+    transform_block: Option<Box<dyn Fn(ParseStream) -> Result<Option<TokenStream>>>>,
 }
 
 impl ParserConfig {
@@ -41,6 +42,46 @@ impl ParserConfig {
     /// Enforce the `NodeType` of top level nodes
     pub fn type_of_top_level_nodes(mut self, node_type: NodeType) -> Self {
         self.type_of_top_level_nodes = Some(node_type);
+        self
+    }
+
+    /// Transforms the `value` of all `NodeType::Block`s with the given closure
+    /// callback. The given `ParseStream` is the content of the block.
+    ///
+    /// When `Some(TokenStream)` is returned, the `TokenStream` is parsed as
+    /// Rust block content. The `ParseStream` must be completely consumed in
+    /// this case (no tokens left).
+    ///
+    /// If `None` is returned, the `ParseStream` is parsed as Rust block
+    /// content. The `ParseStream` isn't forked, so partial parsing inside the
+    /// transform callback will break this mechanism - fork if you want to avoid
+    /// breaking.
+    ///
+    /// An example usage might be a custom syntax inside blocks which isn't
+    /// valid Rust. The given example simply translates the `%` character into
+    /// the string `percent`
+    ///
+    /// ```rust
+    /// use quote::quote;
+    /// use syn::Token;
+    /// use syn_rsx::{parse2_with_config, ParserConfig};
+    ///
+    /// let tokens = quote! {
+    ///     <div>{%}</div>
+    /// };
+    ///
+    /// let config = ParserConfig::new().transform_block(|input| {
+    ///     input.parse::<Token![%]>()?;
+    ///     Ok(Some(quote! { "percent" }))
+    /// });
+    ///
+    /// parse2_with_config(tokens, config).unwrap();
+    /// ```
+    pub fn transform_block<F>(mut self, callback: F) -> Self
+    where
+        F: Fn(ParseStream) -> Result<Option<TokenStream>> + 'static,
+    {
+        self.transform_block = Some(Box::new(callback));
         self
     }
 }
@@ -120,7 +161,11 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let block = self.block_expr(input)?;
+        let block = if self.config.transform_block.is_some() {
+            self.block_transform(input)?
+        } else {
+            self.block_expr(input)?
+        };
 
         Ok(Node {
             name: None,
@@ -129,6 +174,50 @@ impl Parser {
             attributes: vec![],
             children: vec![],
         })
+    }
+
+    fn block_transform(&self, input: ParseStream) -> Result<Expr> {
+        let transform_block = self.config.transform_block.as_ref().unwrap();
+
+        input.step(|cursor| {
+            if let Some((tree, next)) = cursor.token_tree() {
+                match tree {
+                    TokenTree::Group(block_group) => {
+                        let block_span = block_group.span();
+                        let parser = move |block_content: ParseStream| match transform_block(
+                            block_content,
+                        ) {
+                            Ok(transformed_tokens) => match transformed_tokens {
+                                Some(tokens) => {
+                                    let parser = move |input: ParseStream| {
+                                        Ok(self.block_content_to_block(input, block_span))
+                                    };
+                                    parser.parse2(tokens)?
+                                }
+                                None => self.block_content_to_block(block_content, block_span),
+                            },
+                            Err(error) => Err(error),
+                        };
+                        Ok((parser.parse2(block_group.stream())?, next))
+                    }
+                    _ => Err(cursor.error("unexpected: no Group in TokenTree found")),
+                }
+            } else {
+                Err(cursor.error("unexpected: no TokenTree found"))
+            }
+        })
+    }
+
+    fn block_content_to_block(&self, input: ParseStream, span: Span) -> Result<Expr> {
+        Ok(ExprBlock {
+            attrs: vec![],
+            label: None,
+            block: Block {
+                brace_token: Brace { span },
+                stmts: Block::parse_within(&input)?,
+            },
+        }
+        .into())
     }
 
     fn block_expr(&self, input: ParseStream) -> Result<Expr> {
