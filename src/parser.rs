@@ -508,6 +508,11 @@ impl Parser {
         } else if input.peek2(Dash) {
             self.node_name_punctuated_ident::<Dash, fn(_) -> Dash, Ident>(input, Dash)
                 .map(|ok| NodeName::Dash(ok))
+        } else if input.peek(Brace) {
+            let fork = &input.fork();
+            let value = self.block_expr(fork)?;
+            input.advance_to(fork);
+            Ok(NodeName::Block(value))
         } else if input.peek(Ident::peek_any) {
             let mut segments = Punctuated::new();
             let ident = Ident::parse_any(input)?;
