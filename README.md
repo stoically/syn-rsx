@@ -58,6 +58,13 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   <div key=some::value() />
   ```
 
+- **Doctypes and Comments**
+
+  ```html
+  <!DOCTYPE html>
+  <!-- "comment" -->
+  ```
+
 - **Braced blocks are parsed as arbitrary Rust code**
 
   ```html
@@ -82,7 +89,13 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   slightly different requirements for parsing and it's not yet customizable
   feel free to open an issue or pull request to extend the configuration.
 
+  One highlight with regards to customization is the `transform_block`
+  configuration, which takes a closure that receives raw block content as
+  `ParseStream` and lets you optionally convert it to a `TokenStream`. That makes it
+  possible to have custom syntax in blocks. More details in [#9]
+
 
 [`syn`]: /syn
 [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
+[#9]: https://github.com/stoically/syn-rsx/issues/9

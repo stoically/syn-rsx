@@ -94,7 +94,12 @@ pub enum NodeType {
     /// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
     Text,
 
-    /// Doctype declaration: `<!DOCTYPE html>` (case insensitive)
+    /// Comment: `<!-- "comment" -->`, currently has the same restrictions as
+    /// `Text` (comment needs to be quoted)
+    Comment,
+
+    /// Doctype declaration: `<!DOCTYPE html>` (case insensitive), `html` is the
+    /// node value in this case
     Doctype,
 
     /// Arbitrary rust code in braced `{}` blocks
@@ -110,6 +115,7 @@ impl fmt::Display for NodeType {
                 Self::Element => "NodeType::Element",
                 Self::Attribute => "NodeType::Attribute",
                 Self::Text => "NodeType::Text",
+                Self::Comment => "NodeType::Comment",
                 Self::Doctype => "NodeType::Doctype",
                 Self::Block => "NodeType::Block",
             }

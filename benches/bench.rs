@@ -3,7 +3,9 @@ use quote::quote;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let tokens = quote! {
+        <!DOCTYPE html>
         <div>
+            <!-- "comment" -->
             <hello world />
             <div>"String literal"</div>
             <tag-name attribute-key="value" />

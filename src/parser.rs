@@ -46,7 +46,7 @@ impl ParserConfig {
     }
 
     /// Transforms the `value` of all `NodeType::Block`s with the given closure
-    /// callback. The given `ParseStream` is the content of the block.
+    /// callback. The provided `ParseStream` is the content of the block.
     ///
     /// When `Some(TokenStream)` is returned, the `TokenStream` is parsed as
     /// Rust block content. The `ParseStream` must be completely consumed in
@@ -131,8 +131,12 @@ impl Parser {
 
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
         let node = if input.peek(Token![<]) {
-            if input.peek2(Token![!]) && input.peek3(Ident) {
-                self.doctype(input)
+            if input.peek2(Token![!]) {
+                if input.peek3(Ident) {
+                    self.doctype(input)
+                } else {
+                    self.comment(input)
+                }
             } else {
                 self.element(input)
             }
@@ -418,6 +422,25 @@ impl Parser {
             name: Some(name),
             value: None,
             node_type: NodeType::Doctype,
+            attributes: vec![],
+            children: vec![],
+        })
+    }
+
+    fn comment(&self, input: ParseStream) -> Result<Node> {
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![!]>()?;
+        input.parse::<Token![-]>()?;
+        input.parse::<Token![-]>()?;
+        let comment = input.parse::<ExprLit>()?.into();
+        input.parse::<Token![-]>()?;
+        input.parse::<Token![-]>()?;
+        input.parse::<Token![>]>()?;
+
+        Ok(Node {
+            name: None,
+            value: Some(comment),
+            node_type: NodeType::Comment,
             attributes: vec![],
             children: vec![],
         })
