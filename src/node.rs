@@ -28,13 +28,14 @@ pub struct Node {
     /// - Element: `None`
     /// - Attribute: Any valid `syn::Expr`
     /// - Text: `syn::Expr::Lit`
+    /// - Doctype: `syn::Expr::Lit`
     /// - Block: `syn::Expr::Block`
     pub value: Option<Expr>,
 
     /// Attributes of `NodeType::Element` are `NodeType::Attribute` or `NodeType::Block`
     pub attributes: Vec<Node>,
 
-    /// Children of `NodeType::Element` are `NodeType::Element`, `NodeType::Text` or `NodeType::Block`
+    /// Children of `NodeType::Element` can be everything except `NodeType::Attribute`
     pub children: Vec<Node>,
 }
 
@@ -75,6 +76,7 @@ impl Node {
     }
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/API/Node/nodeType
 /// Type of the node
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
@@ -92,6 +94,9 @@ pub enum NodeType {
     /// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
     Text,
 
+
+    /// Doctype declaration: `<!DOCTYPE html>` (case insensitive)
+    Doctype,
     /// Arbitrary rust code in braced `{}` blocks
     Block,
 }
@@ -105,6 +110,7 @@ impl fmt::Display for NodeType {
                 Self::Element => "NodeType::Element",
                 Self::Attribute => "NodeType::Attribute",
                 Self::Text => "NodeType::Text",
+                Self::Doctype => "NodeType::Doctype",
                 Self::Block => "NodeType::Block",
             }
         )

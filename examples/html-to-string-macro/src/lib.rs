@@ -48,6 +48,7 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                 out.push_str("{}");
                 values.push(node.value.unwrap());
             }
+            _ => (),
         }
     }
 
