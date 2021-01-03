@@ -73,6 +73,18 @@
 //!   # }).unwrap();
 //!   ```
 //!
+//! - **Doctypes, Comments and Fragments**
+//!
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
+//!   <!DOCTYPE html>
+//!   <!-- "comment" -->
+//!   <></>
+//!   # }).unwrap();
+//!   ```
+//!
 //! - **Braced blocks are parsed as arbitrary Rust code**
 //!
 //!   ```rust
@@ -101,6 +113,11 @@
 //!   slightly different requirements for parsing and it's not yet customizable
 //!   feel free to open an issue or pull request to extend the configuration.
 //!
+//!   One highlight with regards to customization is the [`transform_block`]
+//!   configuration, which takes a closure that receives raw block content as
+//!   `ParseStream` and lets you optionally convert it to a `TokenStream`. That makes it
+//!   possible to have custom syntax in blocks. More details in [#9]
+//!
 //!
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
@@ -108,6 +125,8 @@
 //! [`ParserConfig`]: struct.ParserConfig.html
 //! [mod style path]: https://docs.rs/syn/1.0.40/syn/struct.Path.html#method.parse_mod_style
 //! [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
+//! [`transform_block`]: struct.ParserConfig.html#method.transform_block
+//! [#9]: https://github.com/stoically/syn-rsx/issues/9
 
 extern crate proc_macro;
 
