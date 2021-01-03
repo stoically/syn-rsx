@@ -18,7 +18,7 @@ quote = "1"
 syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
 
 [dev-dependencies]
-criterion = "=0.3.2"
+criterion = "0.3"
 
 [[bench]]
 name = "bench"
