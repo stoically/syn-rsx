@@ -11,4 +11,4 @@ proc-macro = true
 proc-macro2 = "1"
 quote = "1"
 syn = "1"
-syn-rsx = { version = "0.7", path = "../.." }
+syn-rsx = { version = "0.8.0-beta.1", path = "../.." }
