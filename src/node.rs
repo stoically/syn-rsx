@@ -94,9 +94,9 @@ pub enum NodeType {
     /// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
     Text,
 
-
     /// Doctype declaration: `<!DOCTYPE html>` (case insensitive)
     Doctype,
+
     /// Arbitrary rust code in braced `{}` blocks
     Block,
 }
