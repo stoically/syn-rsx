@@ -92,6 +92,16 @@ fn test_block_as_tag_name() {
 }
 
 #[test]
+fn test_block_as_tag_name_with_closing_tag() {
+    let tokens = quote! {
+        <{some_logic(block)}>"Test"</{some_logic(block)}>
+    };
+
+    let nodes = parse2(tokens).unwrap();
+    assert_eq!(nodes[0].name_as_block().is_some(), true);
+}
+
+#[test]
 fn test_dashed_attribute_name() {
     let tokens = quote! {
         <div data-foo="bar" />

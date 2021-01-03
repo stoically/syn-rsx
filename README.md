@@ -69,6 +69,7 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 - **Braced blocks are parsed as arbitrary Rust code**
 
   ```html
+  <{ let block = "in node name position"; } />
   <div>{ let block = "in node position"; }</div>
   <div { let block="in attribute position" ; } />
   <div key="{" let block="in attribute value position" ; } />

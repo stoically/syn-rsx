@@ -45,7 +45,7 @@ pub struct Node {
 }
 
 impl Node {
-    /// Returns `String` if `name` is `Some`
+    /// Returns `String` if `name` is `Some` and not `NodeName::Block`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
             Some(NodeName::Block(_)) => None,
@@ -54,6 +54,7 @@ impl Node {
         }
     }
 
+    /// Returns `ExprBlock` if `name` is `NodeName::Block(Expr::Block)`
     pub fn name_as_block(&self) -> Option<ExprBlock> {
         match self.name.as_ref() {
             Some(NodeName::Block(Expr::Block(expr))) => Some(expr.to_owned()),
@@ -153,7 +154,7 @@ pub enum NodeName {
     /// Name separated by colons, e.g. `<div on:click={foo} />`
     Colon(Punctuated<Ident, Colon>),
 
-    /// Name specified by arbitrary rust code in braced `{}` blocks
+    /// Arbitrary rust code in braced `{}` blocks
     Block(Expr),
 }
 
@@ -192,7 +193,7 @@ impl fmt::Display for NodeName {
                     .map(|ident| ident.to_string())
                     .collect::<Vec<String>>()
                     .join(":"),
-                NodeName::Block(name) => format!("{:#?}", name), // what's the best way to handle this?
+                NodeName::Block(_) => String::from(""),
             }
         )
     }
