@@ -1,0 +1,28 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: build
+        run: cargo build
+
+      - name: test
+        run: |
+          cargo test
+          cd examples/html-to-string-macro
+          cargo test
+
+      - name: coverage
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml
+          bash <(curl -s https://codecov.io/bash)

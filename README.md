@@ -2,10 +2,11 @@
 
 [![crates.io page](https://img.shields.io/crates/v/syn-rsx.svg)](https://crates.io/crates/syn-rsx)
 [![docs.rs page](https://docs.rs/syn-rsx/badge.svg)](https://docs.rs/syn-rsx/)
+[![codecov](https://codecov.io/gh/stoically/syn-rsx/branch/main/graph/badge.svg?token=2LMJ8YEV92)](https://codecov.io/gh/stoically/syn-rsx)
 ![build](https://github.com/stoically/syn-rsx/workflows/build/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
 
-[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html), aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros. 
+[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html), aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
 
 ```rust
 use quote::quote;
@@ -20,7 +21,6 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 ```
 
 ## Features
-
 
 - **Not opinionated**
 
@@ -55,7 +55,7 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 - **Attribute values can be any valid syn expression without requiring braces**
 
   ```html
-  <div key=some::value() />
+  <div key="some::value()" />
   ```
 
 - **Doctypes, Comments and Fragments**
@@ -70,8 +70,8 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 
   ```html
   <div>{ let block = "in node position"; }</div>
-  <div { let block = "in attribute position"; } />
-  <div key={ let block = "in attribute value position"; } />
+  <div { let block="in attribute position" ; } />
+  <div key="{" let block="in attribute value position" ; } />
   ```
 
 - **Helpful error reporting out of the box**
@@ -95,8 +95,7 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   `ParseStream` and lets you optionally convert it to a `TokenStream`. That makes it
   possible to have custom syntax in blocks. More details in [#9]
 
-
 [`syn`]: /syn
-[`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
+[`tokenstream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
 [#9]: https://github.com/stoically/syn-rsx/issues/9
