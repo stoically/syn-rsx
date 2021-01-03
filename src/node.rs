@@ -17,6 +17,9 @@ pub struct Node {
     /// - Element: Name of the element
     /// - Attribute: Key of the element attribute
     /// - Text: `None`
+    /// - Doctype: `None`
+    /// - Comment: `None`
+    /// - Fragment: `None`
     /// - Block: `None`
     pub name: Option<NodeName>,
 
@@ -29,13 +32,15 @@ pub struct Node {
     /// - Attribute: Any valid `syn::Expr`
     /// - Text: `syn::Expr::Lit`
     /// - Doctype: `syn::Expr::Lit`
+    /// - Comment: `syn::Expr::Lit`
+    /// - Fragment: `None`
     /// - Block: `syn::Expr::Block`
     pub value: Option<Expr>,
 
-    /// Attributes of `NodeType::Element` are `NodeType::Attribute` or `NodeType::Block`
+    /// `NodeType::Element` attributes are `NodeType::Attribute` or `NodeType::Block`
     pub attributes: Vec<Node>,
 
-    /// Children of `NodeType::Element` can be everything except `NodeType::Attribute`
+    /// `NodeType::Element` children can be everything except `NodeType::Attribute`
     pub children: Vec<Node>,
 }
 
