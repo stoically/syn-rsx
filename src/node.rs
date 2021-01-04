@@ -45,11 +45,20 @@ pub struct Node {
 }
 
 impl Node {
-    /// Returns `String` if `name` is `Some`
+    /// Returns `String` if `name` is `Some` and not `NodeName::Block`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
+            Some(NodeName::Block(_)) => None,
             Some(name) => Some(name.to_string()),
             None => None,
+        }
+    }
+
+    /// Returns `ExprBlock` if `name` is `NodeName::Block(Expr::Block)`
+    pub fn name_as_block(&self) -> Option<ExprBlock> {
+        match self.name.as_ref() {
+            Some(NodeName::Block(Expr::Block(expr))) => Some(expr.to_owned()),
+            _ => None,
         }
     }
 
@@ -144,6 +153,9 @@ pub enum NodeName {
 
     /// Name separated by colons, e.g. `<div on:click={foo} />`
     Colon(Punctuated<Ident, Colon>),
+
+    /// Arbitrary rust code in braced `{}` blocks
+    Block(Expr),
 }
 
 impl NodeName {
@@ -153,6 +165,7 @@ impl NodeName {
             NodeName::Path(name) => name.span(),
             NodeName::Dash(name) => name.span(),
             NodeName::Colon(name) => name.span(),
+            NodeName::Block(name) => name.span(),
         }
     }
 }
@@ -180,6 +193,7 @@ impl fmt::Display for NodeName {
                     .map(|ident| ident.to_string())
                     .collect::<Vec<String>>()
                     .join(":"),
+                NodeName::Block(_) => String::from(""),
             }
         )
     }
@@ -200,6 +214,10 @@ impl PartialEq for NodeName {
                 Self::Colon(other) => this == other,
                 _ => false,
             },
+            Self::Block(this) => match other {
+                Self::Block(other) => this == other,
+                _ => false,
+            },
         }
     }
 }
@@ -210,6 +228,7 @@ impl ToTokens for NodeName {
             NodeName::Path(name) => name.to_tokens(tokens),
             NodeName::Dash(name) => name.to_tokens(tokens),
             NodeName::Colon(name) => name.to_tokens(tokens),
+            NodeName::Block(name) => name.to_tokens(tokens),
         }
     }
 }
