@@ -55,7 +55,7 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
 - **Attribute values can be any valid syn expression without requiring braces**
 
   ```html
-  <div key="some::value()" />
+  <div key=some::value() />
   ```
 
 - **Doctypes, Comments and Fragments**
@@ -71,8 +71,8 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   ```html
   <{ let block = "in node name position"; } />
   <div>{ let block = "in node position"; }</div>
-  <div { let block="in attribute position" ; } />
-  <div key="{" let block="in attribute value position" ; } />
+  <div { let block = "in attribute position"; } />
+  <div key={ let block = "in attribute value position"; } />
   ```
 
 - **Helpful error reporting out of the box**
@@ -97,6 +97,6 @@ assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
   possible to have custom syntax in blocks. More details in [#9]
 
 [`syn`]: /syn
-[`tokenstream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
+[`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
 [#9]: https://github.com/stoically/syn-rsx/issues/9

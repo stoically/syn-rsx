@@ -91,6 +91,7 @@
 //!   # use quote::quote;
 //!   # use syn_rsx::parse2;
 //!   # parse2(quote! {
+//!   <{ let block = "in node name position"; } />
 //!   <div>{ let block = "in node position"; }</div>
 //!   <div { let block = "in attribute position"; } />
 //!   <div key={ let block = "in attribute value position"; } />
