@@ -70,13 +70,14 @@ impl Node {
         }
     }
 
-    /// Returns `String` if `value` is a `Lit::Str` expression
+    /// Returns `String` if `value` is a `Lit` or `Path` expression
     pub fn value_as_string(&self) -> Option<String> {
         match self.value.as_ref() {
             Some(Expr::Lit(expr)) => match &expr.lit {
                 Lit::Str(lit_str) => Some(lit_str.value()),
                 _ => None,
             },
+            Some(Expr::Path(expr)) => Some(path_to_string(expr)),
             _ => None,
         }
     }
@@ -176,13 +177,7 @@ impl fmt::Display for NodeName {
             f,
             "{}",
             match self {
-                NodeName::Path(expr) => expr
-                    .path
-                    .segments
-                    .iter()
-                    .map(|segment| segment.ident.to_string())
-                    .collect::<Vec<String>>()
-                    .join("::"),
+                NodeName::Path(expr) => path_to_string(expr),
                 NodeName::Dash(name) => name
                     .iter()
                     .map(|ident| ident.to_string())
@@ -231,4 +226,13 @@ impl ToTokens for NodeName {
             NodeName::Block(name) => name.to_tokens(tokens),
         }
     }
+}
+
+fn path_to_string(expr: &ExprPath) -> String {
+    expr.path
+        .segments
+        .iter()
+        .map(|segment| segment.ident.to_string())
+        .collect::<Vec<String>>()
+        .join("::")
 }

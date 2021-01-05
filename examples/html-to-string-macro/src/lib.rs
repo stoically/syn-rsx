@@ -62,13 +62,8 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                 values.push(node.value.unwrap());
             }
             NodeType::Doctype => {
-                let value = node.value.unwrap();
-                match value {
-                    Expr::Path(expr) => {
-                        out.push_str(&format!("<!DOCTYPE {}>", &expr.path.segments[0].ident));
-                    }
-                    _ => unreachable!(),
-                }
+                let value = node.value_as_string().unwrap();
+                out.push_str(&format!("<!DOCTYPE {}>", value));
             }
         }
     }

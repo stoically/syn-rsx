@@ -227,7 +227,7 @@ fn test_doctype() {
     let nodes = parse2(tokens).unwrap();
 
     assert_eq!(nodes[0].node_type, NodeType::Doctype);
-    assert_eq!(nodes[0].name_as_string(), Some("html".to_owned()));
+    assert_eq!(nodes[0].value_as_string(), Some("html".to_owned()));
 }
 
 #[test]
