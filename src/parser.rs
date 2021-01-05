@@ -411,18 +411,19 @@ impl Parser {
 
         let mut segments = Punctuated::new();
         segments.push_value(PathSegment::from(doctype));
-        let name = NodeName::Path(ExprPath {
+        let value = ExprPath {
             attrs: vec![],
             qself: None,
             path: Path {
                 leading_colon: None,
                 segments,
             },
-        });
+        }
+        .into();
 
         Ok(Node {
-            name: Some(name),
-            value: None,
+            name: None,
+            value: Some(value),
             node_type: NodeType::Doctype,
             attributes: vec![],
             children: vec![],
