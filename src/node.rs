@@ -23,7 +23,7 @@ pub struct Node {
     /// - Block: `None`
     pub name: Option<NodeName>,
 
-    /// Type of the nodes
+    /// Type of the node
     pub node_type: NodeType,
 
     /// Value according to the `NodeType`
@@ -193,7 +193,7 @@ impl fmt::Display for NodeName {
                     .map(|ident| ident.to_string())
                     .collect::<Vec<String>>()
                     .join(":"),
-                NodeName::Block(_) => String::from(""),
+                NodeName::Block(_) => String::from("{}"),
             }
         )
     }
