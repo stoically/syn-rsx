@@ -48,7 +48,28 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                 out.push_str("{}");
                 values.push(node.value.unwrap());
             }
-            _ => (),
+            NodeType::Fragment => {
+                match walk_nodes(node.children) {
+                    Ok((html_string, children_values)) => {
+                        out.push_str(&html_string);
+                        values.extend(children_values);
+                    }
+                    Err(error) => return Err(error),
+                };
+            }
+            NodeType::Comment => {
+                out.push_str("<!-- {} -->");
+                values.push(node.value.unwrap());
+            }
+            NodeType::Doctype => {
+                let value = node.value.unwrap();
+                match value {
+                    Expr::Path(expr) => {
+                        out.push_str(&format!("<!DOCTYPE {}>", &expr.path.segments[0].ident));
+                    }
+                    _ => unreachable!(),
+                }
+            }
         }
     }
 
