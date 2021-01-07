@@ -260,3 +260,16 @@ fn test_fragment() {
 
     assert!(nodes.is_ok());
 }
+
+#[test]
+fn test_reserved_keywords() {
+    let tokens = quote! {
+        <tag::type attribute::type />
+        <tag:type attribute:type />
+        <tag-type attribute-type />
+    };
+
+    let nodes = parse2(tokens);
+
+    assert!(nodes.is_ok());
+}

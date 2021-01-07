@@ -531,6 +531,11 @@ impl Parser {
         }
     }
 
+    // we can't replace this with [`Punctuated::parse_separated_nonempty`] since
+    // that doesn't support reserved keywords. might be worth to consider a PR
+    // upstream
+    //
+    // [`Punctuated::parse_separated_nonempty`]: https://docs.rs/syn/1.0.58/syn/punctuated/struct.Punctuated.html#method.parse_separated_nonempty
     fn node_name_punctuated_ident<T: Parse, F: Peek, X: From<Ident>>(
         &self,
         input: ParseStream,
