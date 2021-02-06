@@ -3,7 +3,7 @@ use quote::quote;
 use syn::Expr;
 use syn_rsx::{parse, Node, NodeType};
 
-fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::TokenStream> {
+fn walk_nodes(nodes: Vec<Node>) -> (String, Vec<Expr>) {
     let mut out = String::new();
     let mut values = vec![];
     for node in nodes {
@@ -11,13 +11,11 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
             NodeType::Element => {
                 let name = node.name_as_string().unwrap();
                 out.push_str(&format!("<{}", name));
-                match walk_nodes(node.attributes) {
-                    Ok((html_string, attribute_values)) => {
-                        out.push_str(&html_string);
-                        values.extend(attribute_values);
-                    }
-                    Err(error) => return Err(error),
-                }
+
+                // attributes
+                let (html_string, attribute_values) = walk_nodes(node.attributes);
+                out.push_str(&html_string);
+                values.extend(attribute_values);
                 out.push_str(">");
 
                 // https://developer.mozilla.org/en-US/docs/Glossary/Empty_element
@@ -27,13 +25,10 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                     _ => (),
                 }
 
-                match walk_nodes(node.children) {
-                    Ok((html_string, children_values)) => {
-                        out.push_str(&html_string);
-                        values.extend(children_values);
-                    }
-                    Err(error) => return Err(error),
-                };
+                // children
+                let (html_string, children_values) = walk_nodes(node.children);
+                out.push_str(&html_string);
+                values.extend(children_values);
 
                 out.push_str(&format!("</{}>", name));
             }
@@ -49,13 +44,9 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
                 values.push(node.value.unwrap());
             }
             NodeType::Fragment => {
-                match walk_nodes(node.children) {
-                    Ok((html_string, children_values)) => {
-                        out.push_str(&html_string);
-                        values.extend(children_values);
-                    }
-                    Err(error) => return Err(error),
-                };
+                let (html_string, children_values) = walk_nodes(node.children);
+                out.push_str(&html_string);
+                values.extend(children_values);
             }
             NodeType::Comment => {
                 out.push_str("<!-- {} -->");
@@ -68,18 +59,16 @@ fn walk_nodes(nodes: Vec<Node>) -> Result<(String, Vec<Expr>), proc_macro2::Toke
         }
     }
 
-    Ok((out, values))
+    (out, values)
 }
 
 #[proc_macro]
 pub fn html_to_string(tokens: TokenStream) -> TokenStream {
     match parse(tokens) {
-        Ok(nodes) => match walk_nodes(nodes) {
-            Ok((html_string, values)) => {
-                quote! { format!(#html_string, #(#values),*) }
-            }
-            Err(error) => error,
-        },
+        Ok(nodes) => {
+            let (html_string, values) = walk_nodes(nodes);
+            quote! { format!(#html_string, #(#values),*) }
+        }
         Err(error) => error.to_compile_error(),
     }
     .into()
