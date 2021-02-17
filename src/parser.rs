@@ -7,10 +7,10 @@ use syn::{
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
     token::{Brace, Colon, Colon2},
-    Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
+    Block, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Token,
 };
 
-use crate::{node::*, punctuation::*};
+use crate::{error::Error, node::*, punctuation::*, Result};
 
 /// Configures the `Parser` behavior
 #[derive(Default)]
@@ -106,10 +106,11 @@ impl Parser {
 
             if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
                 if &parsed_nodes[0].node_type != type_of_top_level_nodes {
-                    return Err(input.error(format!(
-                        "top level nodes need to be of type {}",
-                        type_of_top_level_nodes
-                    )));
+                    return Err(Error::InvalidTopLevelNode {
+                        expected: type_of_top_level_nodes.to_owned(),
+                        found: parsed_nodes[0].node_type,
+                        span: input.span(),
+                    });
                 }
             }
 
@@ -119,10 +120,11 @@ impl Parser {
 
         if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
             if &top_level_nodes != number_of_top_level_nodes {
-                return Err(input.error(format!(
-                    "saw {} top level nodes but exactly {} are required",
-                    top_level_nodes, number_of_top_level_nodes
-                )));
+                return Err(Error::InvalidNumberOfTopLevelNodes {
+                    expected: number_of_top_level_nodes.to_owned(),
+                    found: top_level_nodes,
+                    span: input.span(),
+                });
             }
         }
 

@@ -16,6 +16,7 @@ bench = false
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
+thiserror = "1.0.23"
 
 [dev-dependencies]
 criterion = "0.3"

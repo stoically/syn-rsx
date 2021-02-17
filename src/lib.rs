@@ -131,11 +131,9 @@
 
 extern crate proc_macro;
 
-use syn::{
-    parse::{ParseStream, Parser as _},
-    Result,
-};
+use syn::parse::{ParseStream, Parser as _};
 
+mod error;
 mod node;
 mod parser;
 
@@ -146,8 +144,11 @@ pub mod punctuation {
     custom_punctuation!(Dash, -);
 }
 
+pub use error::Error;
 pub use node::{Node, NodeName, NodeType};
 pub use parser::{Parser, ParserConfig};
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree
 ///
