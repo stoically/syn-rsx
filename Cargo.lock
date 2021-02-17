@@ -480,7 +480,7 @@ dependencies = [
 
 [[package]]
 name = "syn-rsx"
-version = "0.8.0-beta.2"
+version = "0.8.0"
 dependencies = [
  "criterion",
  "proc-macro2",
