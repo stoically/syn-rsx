@@ -3,7 +3,7 @@
 [![crates.io page](https://img.shields.io/crates/v/syn-rsx.svg)](https://crates.io/crates/syn-rsx)
 [![docs.rs page](https://docs.rs/syn-rsx/badge.svg)](https://docs.rs/syn-rsx/)
 [![codecov](https://codecov.io/gh/stoically/syn-rsx/branch/main/graph/badge.svg?token=2LMJ8YEV92)](https://codecov.io/gh/stoically/syn-rsx)
-![build](https://github.com/stoically/syn-rsx/workflows/build/badge.svg)
+![build](https://github.com/stoically/syn-rsx/workflows/ci/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
 
 [syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html), aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
