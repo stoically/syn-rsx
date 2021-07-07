@@ -12,13 +12,15 @@ use syn::{
 
 use crate::{node::*, punctuation::*};
 
+type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
+
 /// Configures the `Parser` behavior
 #[derive(Default)]
 pub struct ParserConfig {
     flat_tree: bool,
     number_of_top_level_nodes: Option<usize>,
     type_of_top_level_nodes: Option<NodeType>,
-    transform_block: Option<Box<dyn Fn(ParseStream) -> Result<Option<TokenStream>>>>,
+    transform_block: Option<Box<TransformBlockFn>>,
 }
 
 impl ParserConfig {
@@ -250,7 +252,7 @@ impl Parser {
     fn element(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
 
-        if let Ok(_) = self.tag_close(&input.fork()) {
+        if self.tag_close(&input.fork()).is_ok() {
             return Err(fork.error("close tag has no corresponding open tag"));
         }
         let (name, attributes, self_closing) = self.tag_open(fork)?;
@@ -458,7 +460,7 @@ impl Parser {
                 return Err(input.error("unexpected end of input"));
             }
 
-            if let Ok(_) = self.fragment_close(&input.fork()) {
+            if self.fragment_close(&input.fork()).is_ok() {
                 self.fragment_close(input)?;
                 break;
             }
@@ -505,10 +507,10 @@ impl Parser {
                 })
         } else if input.peek2(Colon) {
             self.node_name_punctuated_ident::<Colon, fn(_) -> Colon, Ident>(input, Colon)
-                .map(|ok| NodeName::Colon(ok))
+                .map(NodeName::Colon)
         } else if input.peek2(Dash) {
             self.node_name_punctuated_ident::<Dash, fn(_) -> Dash, Ident>(input, Dash)
-                .map(|ok| NodeName::Dash(ok))
+                .map(NodeName::Dash)
         } else if input.peek(Brace) {
             let fork = &input.fork();
             let value = self.block_expr(fork)?;
@@ -527,7 +529,7 @@ impl Parser {
                 },
             }))
         } else {
-            return Err(input.error("invalid tag name or attribute key"));
+            Err(input.error("invalid tag name or attribute key"))
         }
     }
 

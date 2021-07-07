@@ -64,10 +64,7 @@ impl Node {
 
     /// Returns `Span` if `name` is `Some`
     pub fn name_span(&self) -> Option<Span> {
-        match self.name.as_ref() {
-            Some(name) => Some(name.span()),
-            None => None,
-        }
+        self.name.as_ref().map(|name| name.span())
     }
 
     /// Returns `String` if `value` is a `Lit` or `Path` expression

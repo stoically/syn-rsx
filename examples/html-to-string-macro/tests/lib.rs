@@ -36,7 +36,7 @@ fn test() {
                 </body>
             </html>
         "#
-        .split("\n")
+        .split('\n')
         .map(|line| line.trim())
         .collect::<Vec<&str>>()
         .join("")

@@ -88,7 +88,7 @@ fn test_block_as_tag_name() {
     };
 
     let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].name_as_block().is_some(), true);
+    assert!(nodes[0].name_as_block().is_some());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn test_block_as_tag_name_with_closing_tag() {
     };
 
     let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].name_as_block().is_some(), true);
+    assert!(nodes[0].name_as_block().is_some());
 }
 
 #[test]

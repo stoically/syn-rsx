@@ -16,7 +16,7 @@ fn walk_nodes(nodes: Vec<Node>) -> (String, Vec<Expr>) {
                 let (html_string, attribute_values) = walk_nodes(node.attributes);
                 out.push_str(&html_string);
                 values.extend(attribute_values);
-                out.push_str(">");
+                out.push('>');
 
                 // https://developer.mozilla.org/en-US/docs/Glossary/Empty_element
                 match name.as_str() {
