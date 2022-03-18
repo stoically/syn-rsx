@@ -226,7 +226,7 @@ impl Parser {
             label: None,
             block: Block {
                 brace_token: Brace { span },
-                stmts: Block::parse_within(&input)?,
+                stmts: Block::parse_within(input)?,
             },
         }
         .into())
