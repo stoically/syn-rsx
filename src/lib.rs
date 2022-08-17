@@ -136,6 +136,7 @@ use syn::{
     Result,
 };
 
+mod config;
 mod node;
 mod parser;
 
@@ -146,8 +147,9 @@ pub mod punctuation {
     custom_punctuation!(Dash, -);
 }
 
+pub use config::ParserConfig;
 pub use node::{Node, NodeName, NodeType};
-pub use parser::{Parser, ParserConfig};
+pub use parser::Parser;
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree
 ///
