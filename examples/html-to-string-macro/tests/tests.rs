@@ -1,10 +1,10 @@
-use html_to_string_macro::html_to_string;
+use html_to_string_macro::html;
 
 #[test]
 fn test() {
     let world = "planet";
     assert_eq!(
-        html_to_string! {
+        html! {
             <!DOCTYPE html>
             <html>
                 <head>
@@ -17,6 +17,7 @@ fn test() {
                         <div>"1"</div>
                         <div>"2"</div>
                         <div>"3"</div>
+                        <div {"some-attribute-from-rust-block"}/>
                     </>
                 </body>
             </html>
@@ -33,6 +34,7 @@ fn test() {
                     <div>1</div>
                     <div>2</div>
                     <div>3</div>
+                    <div some-attribute-from-rust-block></div>
                 </body>
             </html>
         "#

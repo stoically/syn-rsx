@@ -1,14 +1,19 @@
 [package]
 name = "html-to-string-macro"
-version = "0.1.0"
+description = "simple html to string macro powered by syn-rsx"
+version = "0.2.4"
 authors = ["stoically <stoically@protonmail.com>"]
-edition = "2018"
+keywords = ["html-to-string", "html", "macro"]
+edition = "2021"
+repository = "https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro"
+readme = "README.md"
+license = "MIT"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
-quote = "1"
-syn = "1"
-syn-rsx = { version = "0.8.0", path = "../.." }
+proc-macro2 = "1.0.36"
+quote = "1.0.15"
+syn = "1.0.86"
+syn-rsx = "0.8.1"
