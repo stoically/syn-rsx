@@ -2,15 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.9.0-alpha.1] - 2022-10-21
 
 ### Miscellaneous Tasks
 
 - Add Cargo.lock to .gitignore
+- Add git-cliff configuration
+- Add CHANGELOG
+- Use the actual html-to-string-macro crate as example
+- Update README badges
 
 ### Refactor
 
 - Move config into dedicated module
+- [**breaking**] Switch `Node` to enum-style ([#23](https://github.com/orhun/git-cliff/issues/23))
 
 ## [0.8.1] - 2022-06-26
 
@@ -20,6 +25,7 @@ All notable changes to this project will be documented in this file.
 
 ### Miscellaneous Tasks
 
+- Clippy
 - Clippy
 - Remove Cargo.lock
 - Bump dependencies
@@ -152,6 +158,7 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
+- Update readme
 - Update readme
 - Test feature examples
 
