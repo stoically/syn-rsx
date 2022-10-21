@@ -1,21 +1,28 @@
+use std::convert::TryFrom;
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::Expr;
 use syn_rsx::{parse, Node, NodeType};
 
-fn walk_nodes(nodes: Vec<Node>, nodes_context: Option<NodeType>) -> (String, Vec<Expr>) {
+fn walk_nodes<'a>(nodes: &'a Vec<Node>, context: Option<NodeType>) -> (String, Vec<&'a Expr>) {
     let mut out = String::new();
     let mut values = vec![];
 
     for node in nodes {
-        match node.node_type {
-            NodeType::Element => {
-                let name = node.name_as_string().expect("unexpected missing node name");
+        match node {
+            Node::Doctype(doctype) => {
+                let value = String::try_from(&doctype.value)
+                    .expect("could not convert node value to string");
+                out.push_str(&format!("<!DOCTYPE {}>", value));
+            }
+            Node::Element(element) => {
+                let name = element.name.to_string();
                 out.push_str(&format!("<{}", name));
 
                 // attributes
                 let (html_string, attribute_values) =
-                    walk_nodes(node.attributes, Some(NodeType::Attribute));
+                    walk_nodes(&element.attributes, Some(NodeType::Attribute));
                 out.push_str(&html_string);
                 values.extend(attribute_values);
                 out.push('>');
@@ -28,49 +35,41 @@ fn walk_nodes(nodes: Vec<Node>, nodes_context: Option<NodeType>) -> (String, Vec
                 }
 
                 // children
-                let (html_string, children_values) =
-                    walk_nodes(node.children, Some(NodeType::Element));
+                let (html_string, children_values) = walk_nodes(&element.children, None);
                 out.push_str(&html_string);
                 values.extend(children_values);
 
                 out.push_str(&format!("</{}>", name));
             }
-            NodeType::Attribute => {
-                out.push_str(&format!(
-                    " {}",
-                    node.name_as_string().expect("unexpected missing node name")
-                ));
-                if node.value.is_some() {
+            Node::Attribute(attribute) => {
+                out.push_str(&format!(" {}", attribute.key.to_string()));
+                if let Some(value) = &attribute.value {
                     out.push_str(r#"="{}""#);
-                    values.push(node.value.expect("unexpected missing node value"));
+                    values.push(value);
                 }
             }
-            NodeType::Text | NodeType::Block => {
-                if let Some(nodes_context) = &nodes_context {
-                    // If the nodes context is attribute we prefix with whitespace
-                    if nodes_context == &NodeType::Attribute {
-                        out.push(' ');
-                    }
-                }
-
+            Node::Text(text) => {
                 out.push_str("{}");
-                values.push(node.value.expect("unexpected missing node value"));
+                values.push(&text.value);
             }
-            NodeType::Fragment => {
+            Node::Fragment(fragment) => {
                 let (html_string, children_values) =
-                    walk_nodes(node.children, Some(NodeType::Fragment));
+                    walk_nodes(&fragment.children, Some(NodeType::Fragment));
                 out.push_str(&html_string);
                 values.extend(children_values);
             }
-            NodeType::Comment => {
+            Node::Comment(comment) => {
                 out.push_str("<!-- {} -->");
-                values.push(node.value.expect("unexpected missing node value"));
+                values.push(&comment.value);
             }
-            NodeType::Doctype => {
-                let value = node
-                    .value_as_string()
-                    .expect("unexpected missing node value");
-                out.push_str(&format!("<!DOCTYPE {}>", value));
+            Node::Block(block) => {
+                // If the nodes parent is an attribute we prefix with whitespace
+                if matches!(context, Some(NodeType::Attribute)) {
+                    out.push(' ');
+                }
+
+                out.push_str("{}");
+                values.push(&block.value);
             }
         }
     }
@@ -92,7 +91,7 @@ fn walk_nodes(nodes: Vec<Node>, nodes_context: Option<NodeType>) -> (String, Vec
 pub fn html(tokens: TokenStream) -> TokenStream {
     match parse(tokens) {
         Ok(nodes) => {
-            let (html_string, values) = walk_nodes(nodes, None);
+            let (html_string, values) = walk_nodes(&nodes, None);
             quote! { format!(#html_string, #(#values),*) }
         }
         Err(error) => error.to_compile_error(),

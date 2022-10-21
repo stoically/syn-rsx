@@ -1,5 +1,7 @@
 //! RSX Parser
 
+use std::vec;
+
 use proc_macro2::{Span, TokenStream, TokenTree};
 use syn::{
     braced,
@@ -18,12 +20,12 @@ pub struct Parser {
 }
 
 impl Parser {
-    /// Create a new parser with the given config
+    /// Create a new parser with the given config.
     pub fn new(config: ParserConfig) -> Parser {
         Parser { config }
     }
 
-    /// Parse a given `syn::ParseStream`
+    /// Parse a given `syn::ParseStream`.
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
@@ -31,7 +33,7 @@ impl Parser {
             let parsed_nodes = &mut self.node(input)?;
 
             if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
-                if &parsed_nodes[0].node_type != type_of_top_level_nodes {
+                if &parsed_nodes[0].r#type() != type_of_top_level_nodes {
                     return Err(input.error(format!(
                         "top level nodes need to be of type {}",
                         type_of_top_level_nodes
@@ -76,8 +78,13 @@ impl Parser {
 
         let mut nodes = vec![node];
         if self.config.flat_tree {
-            let mut children = vec![];
-            children.append(&mut nodes[0].children);
+            let mut children = nodes[0]
+                .children_mut()
+                .map(|children| children.drain(..))
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>();
+
             nodes.append(&mut children);
         }
 
@@ -85,31 +92,20 @@ impl Parser {
     }
 
     fn text(&self, input: ParseStream) -> Result<Node> {
-        let text = input.parse::<ExprLit>()?.into();
+        let value = input.parse::<ExprLit>()?.into();
 
-        Ok(Node {
-            name: None,
-            value: Some(text),
-            node_type: NodeType::Text,
-            attributes: vec![],
-            children: vec![],
-        })
+        Ok(Node::Text(NodeText { value }))
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let block = if self.config.transform_block.is_some() {
+        let value = if self.config.transform_block.is_some() {
             self.block_transform(input)?
         } else {
             self.block_expr(input)?
-        };
+        }
+        .into();
 
-        Ok(Node {
-            name: None,
-            value: Some(block),
-            node_type: NodeType::Block,
-            attributes: vec![],
-            children: vec![],
-        })
+        Ok(Node::Block(NodeBlock { value }))
     }
 
     fn block_transform(&self, input: ParseStream) -> Result<Expr> {
@@ -195,13 +191,11 @@ impl Parser {
         }
         input.advance_to(fork);
 
-        Ok(Node {
-            name: Some(name),
-            value: None,
-            node_type: NodeType::Element,
+        Ok(Node::Element(NodeElement {
+            name,
             attributes,
             children,
-        })
+        }))
     }
 
     fn element_has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
@@ -287,16 +281,10 @@ impl Parser {
     fn attribute(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
         if fork.peek(Brace) {
-            let value = Some(self.block_expr(fork)?);
+            let value = self.block_expr(fork)?.into();
             input.advance_to(fork);
 
-            Ok(Node {
-                name: None,
-                node_type: NodeType::Block,
-                value,
-                attributes: vec![],
-                children: vec![],
-            })
+            Ok(Node::Block(NodeBlock { value }))
         } else {
             let key = self.node_name(fork)?;
             let eq = fork.parse::<Option<Token![=]>>()?;
@@ -306,22 +294,16 @@ impl Parser {
                 }
 
                 if fork.peek(Brace) {
-                    Some(self.block_expr(fork)?)
+                    Some(NodeValueExpr::new(self.block_expr(fork)?))
                 } else {
-                    Some(fork.parse()?)
+                    Some(NodeValueExpr::new(fork.parse()?))
                 }
             } else {
                 None
             };
             input.advance_to(fork);
 
-            Ok(Node {
-                name: Some(key),
-                node_type: NodeType::Attribute,
-                value,
-                attributes: vec![],
-                children: vec![],
-            })
+            Ok(Node::Attribute(NodeAttribute { key, value }))
         }
     }
 
@@ -337,23 +319,19 @@ impl Parser {
 
         let mut segments = Punctuated::new();
         segments.push_value(PathSegment::from(doctype));
-        let value = ExprPath {
-            attrs: vec![],
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments,
-            },
-        }
-        .into();
+        let value = NodeValueExpr::new(
+            ExprPath {
+                attrs: vec![],
+                qself: None,
+                path: Path {
+                    leading_colon: None,
+                    segments,
+                },
+            }
+            .into(),
+        );
 
-        Ok(Node {
-            name: None,
-            value: Some(value),
-            node_type: NodeType::Doctype,
-            attributes: vec![],
-            children: vec![],
-        })
+        Ok(Node::Doctype(NodeDoctype { value }))
     }
 
     fn comment(&self, input: ParseStream) -> Result<Node> {
@@ -361,18 +339,12 @@ impl Parser {
         input.parse::<Token![!]>()?;
         input.parse::<Token![-]>()?;
         input.parse::<Token![-]>()?;
-        let comment = input.parse::<ExprLit>()?.into();
+        let value = NodeValueExpr::new(input.parse::<ExprLit>()?.into());
         input.parse::<Token![-]>()?;
         input.parse::<Token![-]>()?;
         input.parse::<Token![>]>()?;
 
-        Ok(Node {
-            name: None,
-            value: Some(comment),
-            node_type: NodeType::Comment,
-            attributes: vec![],
-            children: vec![],
-        })
+        Ok(Node::Comment(NodeComment { value }))
     }
 
     fn fragment(&self, input: ParseStream) -> Result<Node> {
@@ -392,13 +364,7 @@ impl Parser {
             children.append(&mut self.node(input)?);
         }
 
-        Ok(Node {
-            name: None,
-            value: None,
-            node_type: NodeType::Fragment,
-            attributes: vec![],
-            children,
-        })
+        Ok(Node::Fragment(NodeFragment { children }))
     }
 
     fn fragment_open(&self, input: ParseStream) -> Result<()> {

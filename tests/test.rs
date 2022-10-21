@@ -1,60 +1,92 @@
+use std::convert::TryFrom;
+
+use extrude::extrude;
+use eyre::Result;
 use quote::quote;
-use syn_rsx::{parse2, parse2_with_config, NodeType, ParserConfig};
+use syn::ExprBlock;
+use syn_rsx::{
+    parse2, parse2_with_config, Node, NodeAttribute, NodeElement, NodeType, ParserConfig,
+};
 
 #[test]
-fn test_single_empty_element() {
+fn test_single_empty_element() -> Result<()> {
     let tokens = quote! {
         <foo></foo>
     };
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].name_as_string().unwrap(), "foo");
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
+
+    assert_eq!(element.name.to_string(), "foo");
+
+    Ok(())
 }
 
 #[test]
-fn test_single_element_with_attributes() {
+fn test_single_element_with_attributes() -> Result<()> {
     let tokens = quote! {
         <foo bar="moo" baz="42"></foo>
     };
-    let nodes = parse2(tokens).unwrap();
+    let nodes = parse2(tokens)?;
 
-    let attribute = &nodes[0].attributes[0];
-    assert_eq!(attribute.name_as_string().unwrap(), "bar");
-    assert_eq!(attribute.value_as_string().unwrap(), "moo");
+    let attribute = get_element_attribute(&nodes, 0, 0);
+
+    assert_eq!(attribute.key.to_string(), "bar");
+    assert_eq!(
+        String::try_from(attribute.value.as_ref().expect("value"))?,
+        "moo"
+    );
+
+    Ok(())
 }
 
 #[test]
-fn test_single_element_with_text() {
+fn test_single_element_with_text() -> Result<()> {
     let tokens = quote! {
         <foo>"bar"</foo>
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "bar");
+    let nodes = parse2(tokens)?;
+    let child = extrude!(get_element_child(&nodes, 0, 0), Node::Text(child)).expect("child");
+
+    assert_eq!(String::try_from(&child.value)?, "bar");
+
+    Ok(())
 }
 
 #[test]
-fn test_reserved_keyword_attributes() {
+fn test_reserved_keyword_attributes() -> Result<()> {
     let tokens = quote! {
         <input type="foo" />
     };
-    let nodes = parse2(tokens).unwrap();
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
 
-    assert_eq!(nodes[0].name_as_string().unwrap(), "input");
-    assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "type");
+    assert_eq!(element.name.to_string(), "input");
+    assert_eq!(
+        extrude!(element.attributes.get(0), Some(Node::Attribute(attribute)))
+            .map(|attribute| attribute.key.to_string())
+            .as_deref(),
+        Some("type")
+    );
+
+    Ok(())
 }
 
 #[test]
-fn test_block_node() {
+fn test_block_node() -> Result<()> {
     let tokens = quote! {
         <div>{hello}</div>
     };
-    let nodes = parse2(tokens).unwrap();
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
 
-    assert_eq!(nodes[0].children.len(), 1);
+    assert_eq!(element.children.len(), 1);
+
+    Ok(())
 }
 
 #[test]
-fn test_flat_tree() {
+fn test_flat_tree() -> Result<()> {
     let config = ParserConfig::new().flat_tree();
 
     let tokens = quote! {
@@ -66,73 +98,99 @@ fn test_flat_tree() {
         </div>
         <div />
     };
+    let nodes = parse2_with_config(tokens, config)?;
 
-    let nodes = parse2_with_config(tokens, config).unwrap();
     assert_eq!(nodes.len(), 7);
+
+    Ok(())
 }
 
 #[test]
-fn test_path_as_tag_name() {
+fn test_path_as_tag_name() -> Result<()> {
     let tokens = quote! {
         <some::path />
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].name_as_string().unwrap(), "some::path");
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
+
+    assert_eq!(element.name.to_string(), "some::path");
+
+    Ok(())
 }
 
 #[test]
-fn test_block_as_tag_name() {
+fn test_block_as_tag_name() -> Result<()> {
     let tokens = quote! {
         <{some_logic(block)} />
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert!(nodes[0].name_as_block().is_some());
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
+
+    assert!(ExprBlock::try_from(&element.name).is_ok());
+
+    Ok(())
 }
 
 #[test]
-fn test_block_as_tag_name_with_closing_tag() {
+fn test_block_as_tag_name_with_closing_tag() -> Result<()> {
     let tokens = quote! {
         <{some_logic(block)}>"Test"</{some_logic(block)}>
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert!(nodes[0].name_as_block().is_some());
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
+
+    assert!(ExprBlock::try_from(&element.name).is_ok());
+
+    Ok(())
 }
 
 #[test]
-fn test_dashed_attribute_name() {
+fn test_dashed_attribute_name() -> Result<()> {
     let tokens = quote! {
         <div data-foo="bar" />
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "data-foo");
+    let nodes = parse2(tokens)?;
+    let attribute = get_element_attribute(&nodes, 0, 0);
+
+    assert_eq!(attribute.key.to_string(), "data-foo");
+
+    Ok(())
 }
 
 #[test]
-fn test_coloned_attribute_name() {
+fn test_coloned_attribute_name() -> Result<()> {
     let tokens = quote! {
         <div on:click={foo} />
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "on:click");
+    let nodes = parse2(tokens)?;
+    let attribute = get_element_attribute(&nodes, 0, 0);
+
+    assert_eq!(attribute.key.to_string(), "on:click");
+
+    Ok(())
 }
 
 #[test]
-fn test_block_as_attribute() {
+fn test_block_as_attribute() -> Result<()> {
     let tokens = quote! {
         <div {attribute} />
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].attributes.len(), 1);
+    let nodes = parse2(tokens)?;
+    let element = get_element(&nodes, 0);
+
+    assert_eq!(element.attributes.len(), 1);
+
+    Ok(())
 }
 
 #[test]
-fn test_number_of_top_level_nodes() {
+fn test_number_of_top_level_nodes() -> Result<()> {
     let tokens = quote! {
         <div />
         <div />
@@ -158,10 +216,12 @@ fn test_number_of_top_level_nodes() {
     };
     let nodes = parse2_with_config(tokens, ParserConfig::new().number_of_top_level_nodes(2));
     assert!(nodes.is_err());
+
+    Ok(())
 }
 
 #[test]
-fn test_type_of_top_level_nodes() {
+fn test_type_of_top_level_nodes() -> Result<()> {
     let tokens = quote! {
         "foo"
     };
@@ -169,11 +229,13 @@ fn test_type_of_top_level_nodes() {
     let config = ParserConfig::new().type_of_top_level_nodes(NodeType::Element);
     let nodes = parse2_with_config(tokens, config);
 
-    assert!(nodes.is_err())
+    assert!(nodes.is_err());
+
+    Ok(())
 }
 
 #[test]
-fn test_transform_block_some() {
+fn test_transform_block_some() -> Result<()> {
     use syn::{Expr, Lit, Stmt, Token};
 
     let tokens = quote! {
@@ -185,11 +247,12 @@ fn test_transform_block_some() {
         Ok(Some(quote! { "percent" }))
     });
 
-    let nodes = parse2_with_config(tokens, config).unwrap();
+    let nodes = parse2_with_config(tokens, config)?;
+    let block = extrude!(get_element_child(&nodes, 0, 0), Node::Block(block)).expect("block");
 
     assert_eq!(
-        match &nodes[0].children[0].value {
-            Some(Expr::Block(expr)) => {
+        match block.value.as_ref() {
+            Expr::Block(expr) => {
                 match &expr.block.stmts[0] {
                     Stmt::Expr(Expr::Lit(expr)) => match &expr.lit {
                         Lit::Str(lit_str) => Some(lit_str.value()),
@@ -201,11 +264,13 @@ fn test_transform_block_some() {
             _ => None,
         },
         Some("percent".to_owned())
-    )
+    );
+
+    Ok(())
 }
 
 #[test]
-fn test_transform_block_none() {
+fn test_transform_block_none() -> Result<()> {
     let tokens = quote! {
         <div>{"foo"}</div>
     };
@@ -213,25 +278,29 @@ fn test_transform_block_none() {
     let config = ParserConfig::new().transform_block(|_| Ok(None));
     let nodes = parse2_with_config(tokens, config);
 
-    assert!(nodes.is_ok())
+    assert!(nodes.is_ok());
+
+    Ok(())
 }
 
 #[test]
-fn test_doctype() {
+fn test_doctype() -> Result<()> {
     let tokens = quote! {
         <!DOCTYPE html>
         <html>
         </html>
     };
 
-    let nodes = parse2(tokens).unwrap();
+    let nodes = parse2(tokens)?;
+    let doctype = extrude!(nodes.get(0), Some(Node::Doctype(doctype))).expect("doctype");
 
-    assert_eq!(nodes[0].node_type, NodeType::Doctype);
-    assert_eq!(nodes[0].value_as_string(), Some("html".to_owned()));
+    assert_eq!(String::try_from(&doctype.value)?, "html");
+
+    Ok(())
 }
 
 #[test]
-fn test_comment() {
+fn test_comment() -> Result<()> {
     let tokens = quote! {
         <!-- "comment1" -->
         <div>
@@ -240,36 +309,68 @@ fn test_comment() {
         </div>
     };
 
-    let nodes = parse2(tokens).unwrap();
-    assert_eq!(nodes[0].value_as_string(), Some("comment1".to_owned()));
-    assert_eq!(
-        nodes[1].children[0].value_as_string(),
-        Some("comment2".to_owned())
-    );
+    let nodes = parse2(tokens)?;
+    let comment1 = extrude!(nodes.get(0), Some(Node::Comment(comment))).expect("comment");
+    let comment2 =
+        extrude!(get_element_child(&nodes, 1, 0), Node::Comment(comment)).expect("comment");
+
+    assert_eq!(String::try_from(&comment1.value)?, "comment1");
+    assert_eq!(String::try_from(&comment2.value)?, "comment2");
+
+    Ok(())
 }
 
 #[test]
-fn test_fragment() {
+fn test_fragment() -> Result<()> {
     let tokens = quote! {
         <>
             <div />
         </>
     };
 
-    let nodes = parse2(tokens);
+    let nodes = parse2(tokens)?;
+    let fragment = extrude!(nodes.get(0), Some(Node::Fragment(fragment))).expect("fragment");
 
-    assert!(nodes.is_ok());
+    assert_eq!(fragment.children.len(), 1);
+
+    Ok(())
 }
 
 #[test]
-fn test_reserved_keywords() {
+fn test_reserved_keywords() -> Result<()> {
     let tokens = quote! {
         <tag::type attribute::type />
         <tag:type attribute:type />
         <tag-type attribute-type />
     };
 
-    let nodes = parse2(tokens);
+    let nodes = parse2(tokens)?;
 
-    assert!(nodes.is_ok());
+    assert_eq!(nodes.len(), 3);
+
+    Ok(())
+}
+
+fn get_element(nodes: &[Node], element_index: usize) -> &NodeElement {
+    extrude!(nodes.get(element_index), Some(Node::Element(element))).expect("element")
+}
+
+fn get_element_attribute(
+    nodes: &[Node],
+    element_index: usize,
+    attribute_index: usize,
+) -> &NodeAttribute {
+    let element =
+        extrude!(nodes.get(element_index), Some(Node::Element(element))).expect("element");
+    extrude!(
+        element.attributes.get(attribute_index),
+        Some(Node::Attribute(attribute))
+    )
+    .expect("attribute")
+}
+
+fn get_element_child(nodes: &[Node], element_index: usize, child_index: usize) -> &Node {
+    let element =
+        extrude!(nodes.get(element_index), Some(Node::Element(element))).expect("element");
+    element.children.get(child_index).expect("child")
 }

@@ -3,15 +3,25 @@
 //! value are syn expressions to support building proc macros.
 //!
 //! ```rust
+//! # fn main() -> eyre::Result<()> {
+//! use std::convert::TryFrom;
+//!
+//! use extrude::extrude;
 //! use quote::quote;
-//! use syn_rsx::parse2;
+//! use syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
 //!
 //! let tokens = quote! { <hello world>"hi"</hello> };
+//! let nodes = parse2(tokens)?;
 //!
-//! let nodes = parse2(tokens).unwrap();
-//! assert_eq!(nodes[0].name_as_string().unwrap(), "hello");
-//! assert_eq!(nodes[0].attributes[0].name_as_string().unwrap(), "world");
-//! assert_eq!(nodes[0].children[0].value_as_string().unwrap(), "hi");
+//! let element = extrude!(&nodes[0], Node::Element(element)).unwrap();
+//! let attribute = extrude!(&element.attributes[0], Node::Attribute(attribute)).unwrap();
+//! let text = extrude!(&element.children[0], Node::Text(text)).unwrap();
+//!
+//! assert_eq!(element.name.to_string(), "hello");
+//! assert_eq!(attribute.key.to_string(), "world");
+//! assert_eq!(String::try_from(&text.value)?, "hi");
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ## Features
@@ -137,6 +147,7 @@ use syn::{
 };
 
 mod config;
+mod error;
 mod node;
 mod parser;
 
@@ -148,7 +159,8 @@ pub mod punctuation {
 }
 
 pub use config::ParserConfig;
-pub use node::{Node, NodeName, NodeType};
+pub use error::Error;
+pub use node::*;
 pub use parser::Parser;
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree
