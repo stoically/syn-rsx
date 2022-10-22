@@ -221,7 +221,7 @@ impl fmt::Display for NodeBlock {
     }
 }
 
-/// Name of the node
+/// Name of the node.
 #[derive(Debug)]
 pub enum NodeName {
     /// A plain identifier like `div` is a path of length 1, e.g. `<div />`. Can

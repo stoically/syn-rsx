@@ -6,7 +6,7 @@
 ![build](https://github.com/stoically/syn-rsx/workflows/ci/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
 
-[syn](https://github.com/dtolnay/syn)-powered parser for JSX-like [TokenStreams](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html), aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
+[`syn`]-powered parser for JSX-like [`TokenStream`]s, aka RSX. The parsed result is a nested [`Node`] structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
 
 ```rust
 use std::convert::TryFrom;
@@ -110,8 +110,9 @@ You might want to check out the [html-to-string-macro example] as well.
   `ParseStream` and lets you optionally convert it to a `TokenStream`. That makes it
   possible to have custom syntax in blocks. More details in [#9]
 
-[`syn`]: /syn
+[`syn`]: https://github.com/dtolnay/syn
 [`tokenstream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
+[`node`]: https://docs.rs/syn-rsx/0.9.0-alpha.1/syn_rsx/enum.Node.html
+[html-to-string-macro example]: https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
 [#9]: https://github.com/stoically/syn-rsx/issues/9
-[html-to-string-macro example]: https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro

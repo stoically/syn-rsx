@@ -138,7 +138,7 @@
 //!
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
-//! [`Node`]: struct.Node.html
+//! [`Node`]: enum.Node.html
 //! [`ParserConfig`]: struct.ParserConfig.html
 //! [mod style path]: https://docs.rs/syn/1.0.40/syn/struct.Path.html#method.parse_mod_style
 //! [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
