@@ -425,7 +425,7 @@ impl TryFrom<&NodeValueExpr> for String {
     }
 }
 
-pub fn path_to_string(expr: &ExprPath) -> String {
+fn path_to_string(expr: &ExprPath) -> String {
     expr.path
         .segments
         .iter()
