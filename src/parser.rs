@@ -8,6 +8,7 @@ use syn::{
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
+    spanned::Spanned,
     token::{Brace, Colon, Colon2},
     Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };

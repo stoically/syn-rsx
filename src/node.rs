@@ -238,18 +238,6 @@ pub enum NodeName {
     Block(Expr),
 }
 
-impl NodeName {
-    /// Returns the `Span` of this `NodeName`.
-    pub fn span(&self) -> Span {
-        match self {
-            NodeName::Path(name) => name.span(),
-            NodeName::Dash(name) => name.span(),
-            NodeName::Colon(name) => name.span(),
-            NodeName::Block(name) => name.span(),
-        }
-    }
-}
-
 impl TryFrom<&NodeName> for ExprBlock {
     type Error = Error;
 
