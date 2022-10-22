@@ -84,8 +84,10 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>, context: Option<NodeType>) -> (String, V
 /// # Example
 ///
 /// ```
+/// use html_to_string_macro::html;
+///
 /// let world = "planet";
-/// assert_eq!(html_to_string_macro::html!(<div>"hello "{world}</div>), "<div>hello planet</div>");
+/// assert_eq!(html!(<div>"hello "{world}</div>), "<div>hello planet</div>");
 /// ```
 #[proc_macro]
 pub fn html(tokens: TokenStream) -> TokenStream {
