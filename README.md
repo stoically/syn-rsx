@@ -15,13 +15,18 @@ use extrude::extrude;
 use quote::quote;
 use syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
 
+// Create HTML `TokenStream`.
 let tokens = quote! { <hello world>"hi"</hello> };
+
+// Parse the tokens into a tree of `Node`s.
 let nodes = parse2(tokens)?;
 
+// Extract some specific nodes from the tree.
 let element = extrude!(&nodes[0], Node::Element(element)).unwrap();
 let attribute = extrude!(&element.attributes[0], Node::Attribute(attribute)).unwrap();
 let text = extrude!(&element.children[0], Node::Text(text)).unwrap();
 
+// Work with the nodes.
 assert_eq!(element.name.to_string(), "hello");
 assert_eq!(attribute.key.to_string(), "world");
 assert_eq!(String::try_from(&text.value)?, "hi");
@@ -39,11 +44,11 @@ assert_eq!(String::try_from(&text.value)?, "hi");
 
 - **Text nodes**
 
+  Support for [unquoted text is planned].
+
   ```html
   <div>"String literal"</div>
   ```
-
-  Support for [unquoted text is planned]
 
 - **Node names separated by dash, colon or double colon**
 
@@ -57,12 +62,6 @@ assert_eq!(String::try_from(&text.value)?, "hi");
 
   ```html
   <input type="submit" />
-  ```
-
-- **Attribute values can be any valid syn expression without requiring braces**
-
-  ```html
-  <div key="some::value()" />
   ```
 
 - **Doctypes, Comments and Fragments**
@@ -80,6 +79,12 @@ assert_eq!(String::try_from(&text.value)?, "hi");
   <div>{ let block = "in node position"; }</div>
   <div { let block="in attribute position" ; } />
   <div key="{" let block="in attribute value position" ; } />
+  ```
+
+- **Attribute values can be any valid syn expression without requiring braces**
+
+  ```html
+  <div key="some::value()" />
   ```
 
 - **Helpful error reporting out of the box**

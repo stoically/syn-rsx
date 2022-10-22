@@ -10,13 +10,18 @@
 //! use quote::quote;
 //! use syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
 //!
+//! // Create HTML `TokenStream`.
 //! let tokens = quote! { <hello world>"hi"</hello> };
+//!
+//! // Parse the tokens into a tree of `Node`s.
 //! let nodes = parse2(tokens)?;
 //!
+//! // Extract some specific nodes from the tree.
 //! let element = extrude!(&nodes[0], Node::Element(element)).unwrap();
 //! let attribute = extrude!(&element.attributes[0], Node::Attribute(attribute)).unwrap();
 //! let text = extrude!(&element.children[0], Node::Text(text)).unwrap();
 //!
+//! // Work with the nodes.
 //! assert_eq!(element.name.to_string(), "hello");
 //! assert_eq!(attribute.key.to_string(), "world");
 //! assert_eq!(String::try_from(&text.value)?, "hi");
@@ -25,7 +30,6 @@
 //! ```
 //!
 //! ## Features
-//!
 //!
 //! - **Not opinionated**
 //!
@@ -41,6 +45,8 @@
 //!
 //! - **Text nodes**
 //!
+//!   Support for [unquoted text is planned].
+//!
 //!   ```rust
 //!   # use quote::quote;
 //!   # use syn_rsx::parse2;
@@ -48,8 +54,6 @@
 //!   <div>"String literal"</div>
 //!   # }).unwrap();
 //!   ```
-//!
-//!   Support for [unquoted text is planned]
 //!
 //! - **Node names separated by dash, colon or double colon**
 //!
@@ -70,16 +74,6 @@
 //!   # use syn_rsx::parse2;
 //!   # parse2(quote! {
 //!   <input type="submit" />
-//!   # }).unwrap();
-//!   ```
-//!
-//! - **Attribute values can be any valid syn expression without requiring braces**
-//!
-//!   ```rust
-//!   # use quote::quote;
-//!   # use syn_rsx::parse2;
-//!   # parse2(quote! {
-//!   <div key=some::value() />
 //!   # }).unwrap();
 //!   ```
 //!
@@ -105,6 +99,16 @@
 //!   <div>{ let block = "in node position"; }</div>
 //!   <div { let block = "in attribute position"; } />
 //!   <div key={ let block = "in attribute value position"; } />
+//!   # }).unwrap();
+//!   ```
+//!
+//! - **Attribute values can be any valid syn expression without requiring braces**
+//!
+//!   ```rust
+//!   # use quote::quote;
+//!   # use syn_rsx::parse2;
+//!   # parse2(quote! {
+//!   <div key=some::value() />
 //!   # }).unwrap();
 //!   ```
 //!
