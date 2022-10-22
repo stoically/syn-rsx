@@ -32,6 +32,8 @@ assert_eq!(attribute.key.to_string(), "world");
 assert_eq!(String::try_from(&text.value)?, "hi");
 ```
 
+You might want to check out the [html-to-string-macro example] as well.
+
 ## Features
 
 - **Not opinionated**
@@ -112,3 +114,4 @@ assert_eq!(String::try_from(&text.value)?, "hi");
 [`tokenstream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
 [#9]: https://github.com/stoically/syn-rsx/issues/9
+[html-to-string-macro example]: https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro

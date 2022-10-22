@@ -29,6 +29,8 @@
 //! # }
 //! ```
 //!
+//! You might want to check out the [html-to-string-macro example] as well.
+//!
 //! ## Features
 //!
 //! - **Not opinionated**
@@ -142,6 +144,7 @@
 //! [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
 //! [`transform_block`]: struct.ParserConfig.html#method.transform_block
 //! [#9]: https://github.com/stoically/syn-rsx/issues/9
+//! [html-to-string-macro example]: https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro
 
 extern crate proc_macro;
 
