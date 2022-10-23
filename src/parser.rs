@@ -13,7 +13,7 @@ use syn::{
     Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
-use crate::{node::*, punctuation::*, ParserConfig};
+use crate::{config::TransformBlockFn, node::*, punctuation::*, ParserConfig};
 
 /// RSX Parser
 pub struct Parser {
@@ -99,8 +99,8 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let value = if self.config.transform_block.is_some() {
-            self.block_transform(input)?
+        let value = if let Some(transform_fn) = &self.config.transform_block {
+            self.block_transform(input, transform_fn)?
         } else {
             self.block_expr(input)?
         }
@@ -109,34 +109,34 @@ impl Parser {
         Ok(Node::Block(NodeBlock { value }))
     }
 
-    fn block_transform(&self, input: ParseStream) -> Result<Expr> {
-        let transform_block = self.config.transform_block.as_ref().unwrap();
+    fn block_transform(&self, input: ParseStream, transform_fn: &TransformBlockFn) -> Result<Expr> {
+        let parser = move |block_content: ParseStream| {
+            let forked_block_content = block_content.fork();
+
+            match transform_fn(&forked_block_content) {
+                Ok(transformed_tokens) => match transformed_tokens {
+                    Some(tokens) => {
+                        let parser = move |input: ParseStream| {
+                            Ok(self.block_content_to_block(input, block_content.span()))
+                        };
+                        let transformed_content = parser.parse2(tokens)?;
+                        block_content.advance_to(&forked_block_content);
+                        transformed_content
+                    }
+                    None => self.block_content_to_block(block_content, block_content.span()),
+                },
+                Err(error) => Err(error),
+            }
+        };
 
         input.step(|cursor| {
-            if let Some((tree, next)) = cursor.token_tree() {
-                match tree {
-                    TokenTree::Group(block_group) => {
-                        let block_span = block_group.span();
-                        let parser = move |block_content: ParseStream| match transform_block(
-                            block_content,
-                        ) {
-                            Ok(transformed_tokens) => match transformed_tokens {
-                                Some(tokens) => {
-                                    let parser = move |input: ParseStream| {
-                                        Ok(self.block_content_to_block(input, block_span))
-                                    };
-                                    parser.parse2(tokens)?
-                                }
-                                None => self.block_content_to_block(block_content, block_span),
-                            },
-                            Err(error) => Err(error),
-                        };
-                        Ok((parser.parse2(block_group.stream())?, next))
-                    }
-                    _ => Err(cursor.error("unexpected: no Group in TokenTree found")),
-                }
-            } else {
-                Err(cursor.error("unexpected: no TokenTree found"))
+            let (tree, next) = cursor
+                .token_tree()
+                .ok_or_else(|| cursor.error("unexpected: no TokenTree found"))?;
+
+            match tree {
+                TokenTree::Group(block_group) => Ok((parser.parse2(block_group.stream())?, next)),
+                _ => Err(cursor.error("unexpected: no Group in TokenTree found")),
             }
         })
     }

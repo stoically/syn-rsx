@@ -3,7 +3,7 @@ use syn::{parse::ParseStream, Result};
 
 use crate::NodeType;
 
-type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
+pub type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
 
 /// Configures the `Parser` behavior
 #[derive(Default)]
@@ -43,12 +43,11 @@ impl ParserConfig {
     ///
     /// When `Some(TokenStream)` is returned, the `TokenStream` is parsed as
     /// Rust block content. The `ParseStream` must be completely consumed in
-    /// this case (no tokens left).
+    /// this case, meaning no tokens can be left in the stream.
     ///
-    /// If `None` is returned, the `ParseStream` is parsed as Rust block
-    /// content. The `ParseStream` isn't forked, so partial parsing inside the
-    /// transform callback will break this mechanism - fork if you want to avoid
-    /// breaking.
+    /// If `None` is returned, parsing happens with the original `ParseStream`,
+    /// since the tokens that are passend into the transform callback are a fork,
+    /// which gets only advanced if `Some` is returned.
     ///
     /// An example usage might be a custom syntax inside blocks which isn't
     /// valid Rust. The given example simply translates the `%` character into
