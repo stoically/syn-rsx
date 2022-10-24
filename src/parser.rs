@@ -31,10 +31,10 @@ impl Parser {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
         while !input.cursor().eof() {
-            let parsed_nodes = &mut self.node(input)?;
+            let mut parsed_node = self.node(input)?;
 
             if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
-                if &parsed_nodes[0].r#type() != type_of_top_level_nodes {
+                if &parsed_node.r#type() != type_of_top_level_nodes {
                     return Err(input.error(format!(
                         "top level nodes need to be of type {}",
                         type_of_top_level_nodes
@@ -42,7 +42,20 @@ impl Parser {
                 }
             }
 
-            nodes.append(parsed_nodes);
+            if self.config.flat_tree {
+                let mut children = parsed_node
+                    .children_mut()
+                    .map(|children| children.drain(..))
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<_>>();
+
+                nodes.push(parsed_node);
+                nodes.append(&mut children);
+            } else {
+                nodes.push(parsed_node);
+            }
+
             top_level_nodes += 1;
         }
 
@@ -58,7 +71,7 @@ impl Parser {
         Ok(nodes)
     }
 
-    fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
+    fn node(&self, input: ParseStream) -> Result<Node> {
         let node = if input.peek(Token![<]) {
             if input.peek2(Token![!]) {
                 if input.peek3(Ident) {
@@ -77,21 +90,10 @@ impl Parser {
             self.text(input)
         }?;
 
-        let mut nodes = vec![node];
-        if self.config.flat_tree {
-            let mut children = nodes[0]
-                .children_mut()
-                .map(|children| children.drain(..))
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
-
-            nodes.append(&mut children);
+        Ok(node)
         }
 
-        Ok(nodes)
-    }
-
+    /// Parse the stream as [`Node::Text`].
     fn text(&self, input: ParseStream) -> Result<Node> {
         let value = input.parse::<ExprLit>()?.into();
 
@@ -185,7 +187,7 @@ impl Parser {
                     break;
                 }
 
-                children.append(&mut self.node(fork)?);
+                children.push(self.node(fork)?);
             }
 
             self.tag_close(fork)?;
@@ -362,7 +364,7 @@ impl Parser {
                 break;
             }
 
-            children.append(&mut self.node(input)?);
+            children.push(self.node(input)?);
         }
 
         Ok(Node::Fragment(NodeFragment { children }))
