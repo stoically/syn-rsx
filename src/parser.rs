@@ -21,12 +21,12 @@ pub struct Parser {
 }
 
 impl Parser {
-    /// Create a new parser with the given config.
+    /// Create a new parser with the given [`ParserConfig`].
     pub fn new(config: ParserConfig) -> Parser {
         Parser { config }
     }
 
-    /// Parse a given `syn::ParseStream`.
+    /// Parse a given [`ParseStream`].
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
@@ -71,6 +71,11 @@ impl Parser {
         Ok(nodes)
     }
 
+    /// Parse the next [`Node`] in the tree.
+    ///
+    /// To improve performance it peeks the next 1-3 tokens and calls the according node parser function depening on that.
+    //
+    // TODO: Convert to "loop over tokens", where nodes are the tokens?
     fn node(&self, input: ParseStream) -> Result<Node> {
         let node = if input.peek(Token![<]) {
             if input.peek2(Token![!]) {
@@ -91,7 +96,7 @@ impl Parser {
         }?;
 
         Ok(node)
-        }
+    }
 
     /// Parse the stream as [`Node::Text`].
     fn text(&self, input: ParseStream) -> Result<Node> {
@@ -100,6 +105,7 @@ impl Parser {
         Ok(Node::Text(NodeText { value }))
     }
 
+    /// Parse the stream as [`Node::Block`].
     fn block(&self, input: ParseStream) -> Result<Node> {
         let value = if let Some(transform_fn) = &self.config.transform_block {
             self.block_transform(input, transform_fn)?
@@ -111,6 +117,7 @@ impl Parser {
         Ok(Node::Block(NodeBlock { value }))
     }
 
+    /// Replace the next [`TokenTree::Group`] in the given parse stream with a token stream returned by a user callback, or parse as original block if no token stream is returned.
     fn block_transform(&self, input: ParseStream, transform_fn: &TransformBlockFn) -> Result<Expr> {
         let parser = move |block_content: ParseStream| {
             let forked_block_content = block_content.fork();
@@ -143,6 +150,7 @@ impl Parser {
         })
     }
 
+    /// Parse the given stream and span as [`Expr::Block`].
     fn block_content_to_block(&self, input: ParseStream, span: Span) -> Result<Expr> {
         Ok(ExprBlock {
             attrs: vec![],
@@ -155,6 +163,7 @@ impl Parser {
         .into())
     }
 
+    /// Parse the given stream as [`Expr::Block`].
     fn block_expr(&self, input: ParseStream) -> Result<Expr> {
         let fork = input.fork();
         let content;
@@ -172,6 +181,7 @@ impl Parser {
         Ok(block.into())
     }
 
+    /// Parse the given stream as [`NodeElement`].
     fn element(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
 
@@ -201,8 +211,9 @@ impl Parser {
         }))
     }
 
+    /// Check whether the next token in the stream is a closing tag to decide whether the node element has children.
     fn element_has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
-        // an empty input at this point means the tag wasn't closed
+        // An empty input at this point means the tag wasn't closed.
         if input.is_empty() {
             return Err(Error::new(
                 tag_open_name.span(),
@@ -212,10 +223,10 @@ impl Parser {
 
         if let Ok(tag_close_name) = self.tag_close(&input.fork()) {
             if tag_open_name == &tag_close_name {
-                // if the next token is a matching close tag then there are no child nodes
+                // If the next token is a matching close tag then there are no child nodes.
                 return Ok(false);
             } else {
-                // if the next token is a closing tag with a different name it's an invalid tree
+                // If the next token is a closing tag with a different name it's an invalid tree.
                 return Err(input.error("close tag has no corresponding open tag"));
             }
         }
@@ -223,6 +234,7 @@ impl Parser {
         Ok(true)
     }
 
+    /// Parse the stream as opening or self-closing tag and extract its attributes.
     fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool)> {
         input.parse::<Token![<]>()?;
         let name = self.node_name(input)?;
@@ -251,6 +263,7 @@ impl Parser {
         Ok((name, attributes, self_closing))
     }
 
+    /// Check whether an element tag ended or is self-closing.
     fn tag_open_end(&self, input: ParseStream) -> Result<bool> {
         let self_closing = input.parse::<Option<Token![/]>>()?.is_some();
         input.parse::<Token![>]>()?;
@@ -258,6 +271,7 @@ impl Parser {
         Ok(self_closing)
     }
 
+    /// Parse a closing tag and return its [`NodeName`].
     fn tag_close(&self, input: ParseStream) -> Result<NodeName> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
@@ -267,6 +281,7 @@ impl Parser {
         Ok(name)
     }
 
+    /// Parse the stream as vector of attributes.
     fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
 
@@ -281,6 +296,7 @@ impl Parser {
         Ok(nodes)
     }
 
+    /// Parse the stream as [`Node::Attribute`].
     fn attribute(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
         if fork.peek(Brace) {
@@ -310,6 +326,7 @@ impl Parser {
         }
     }
 
+    /// Parse the stream as [`Node::Doctype`].
     fn doctype(&self, input: ParseStream) -> Result<Node> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![!]>()?;
@@ -337,6 +354,7 @@ impl Parser {
         Ok(Node::Doctype(NodeDoctype { value }))
     }
 
+    /// Parse the stream as [`Node::Comment`].
     fn comment(&self, input: ParseStream) -> Result<Node> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![!]>()?;
@@ -350,6 +368,7 @@ impl Parser {
         Ok(Node::Comment(NodeComment { value }))
     }
 
+    /// Parse the stream as [`Node::Fragement`].
     fn fragment(&self, input: ParseStream) -> Result<Node> {
         self.fragment_open(input)?;
 
@@ -370,6 +389,7 @@ impl Parser {
         Ok(Node::Fragment(NodeFragment { children }))
     }
 
+    /// Parse the stream as opening fragment tag.
     fn fragment_open(&self, input: ParseStream) -> Result<()> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![>]>()?;
@@ -377,6 +397,7 @@ impl Parser {
         Ok(())
     }
 
+    /// Parse the stream as closing fragment tag.
     fn fragment_close(&self, input: ParseStream) -> Result<()> {
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
@@ -385,6 +406,7 @@ impl Parser {
         Ok(())
     }
 
+    /// Parse the stream as [`NodeName`].
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
         if input.peek2(Colon2) {
             self.node_name_punctuated_ident::<Colon2, fn(_) -> Colon2, PathSegment>(input, Colon2)
@@ -426,11 +448,13 @@ impl Parser {
         }
     }
 
-    // we can't replace this with [`Punctuated::parse_separated_nonempty`] since
-    // that doesn't support reserved keywords. might be worth to consider a PR
-    // upstream
-    //
-    // [`Punctuated::parse_separated_nonempty`]: https://docs.rs/syn/1.0.58/syn/punctuated/struct.Punctuated.html#method.parse_separated_nonempty
+    /// Parse the stream as punctuated idents.
+    ///
+    /// We can't replace this with [`Punctuated::parse_separated_nonempty`] since
+    /// that doesn't support reserved keywords. Might be worth to consider a PR
+    /// upstream.
+    ///
+    /// [`Punctuated::parse_separated_nonempty`]: https://docs.rs/syn/1.0.58/syn/punctuated/struct.Punctuated.html#method.parse_separated_nonempty
     fn node_name_punctuated_ident<T: Parse, F: Peek, X: From<Ident>>(
         &self,
         input: ParseStream,
