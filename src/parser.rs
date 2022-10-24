@@ -61,8 +61,6 @@ impl Parser {
     /// Parse the next [`Node`] in the tree.
     ///
     /// To improve performance it peeks the next 1-3 tokens and calls the according node parser function depening on that.
-    //
-    // TODO: Convert to "loop over tokens", where nodes are the tokens?
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut node = if input.peek(Token![<]) {
             if input.peek2(Token![!]) {

@@ -170,7 +170,7 @@ pub use error::Error;
 pub use node::*;
 pub use parser::Parser;
 
-/// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree
+/// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree.
 ///
 /// [`proc-macro::TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
@@ -180,7 +180,7 @@ pub fn parse(tokens: proc_macro::TokenStream) -> Result<Vec<Node>> {
     parser.parse(tokens)
 }
 
-/// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree with custom [`ParserConfig`]
+/// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree with custom [`ParserConfig`].
 ///
 /// [`proc-macro::TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
@@ -194,7 +194,7 @@ pub fn parse_with_config(
     parser.parse(tokens)
 }
 
-/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree
+/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree.
 ///
 /// [`proc-macro2::TokenStream`]: https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
@@ -204,7 +204,7 @@ pub fn parse2(tokens: proc_macro2::TokenStream) -> Result<Vec<Node>> {
     parser.parse2(tokens)
 }
 
-/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree with custom [`ParserConfig`]
+/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree with custom [`ParserConfig`].
 ///
 /// [`proc-macro2::TokenStream`]: https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
