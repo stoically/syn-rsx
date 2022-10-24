@@ -46,8 +46,8 @@ impl ParserConfig {
     /// this case, meaning no tokens can be left in the stream.
     ///
     /// If `None` is returned, parsing happens with the original `ParseStream`,
-    /// since the tokens that are passend into the transform callback are a fork,
-    /// which gets only advanced if `Some` is returned.
+    /// since the tokens that are passend into the transform callback are a
+    /// fork, which gets only advanced if `Some` is returned.
     ///
     /// An example usage might be a custom syntax inside blocks which isn't
     /// valid Rust. The given example simply translates the `%` character into

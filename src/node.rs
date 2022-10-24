@@ -1,8 +1,9 @@
 //! Tree of nodes.
 
+use std::{convert::TryFrom, fmt, ops::Deref};
+
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use std::{convert::TryFrom, fmt, ops::Deref};
 use syn::{punctuated::Punctuated, token::Colon, Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit};
 
 use crate::{punctuation::Dash, Error};

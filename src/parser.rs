@@ -60,7 +60,8 @@ impl Parser {
 
     /// Parse the next [`Node`] in the tree.
     ///
-    /// To improve performance it peeks the next 1-3 tokens and calls the according node parser function depening on that.
+    /// To improve performance it peeks the next 1-3 tokens and calls the
+    /// according node parser function depening on that.
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut node = if input.peek(Token![<]) {
             if input.peek2(Token![!]) {
@@ -115,7 +116,9 @@ impl Parser {
         Ok(Node::Block(NodeBlock { value }))
     }
 
-    /// Replace the next [`TokenTree::Group`] in the given parse stream with a token stream returned by a user callback, or parse as original block if no token stream is returned.
+    /// Replace the next [`TokenTree::Group`] in the given parse stream with a
+    /// token stream returned by a user callback, or parse as original block if
+    /// no token stream is returned.
     fn block_transform(&self, input: ParseStream, transform_fn: &TransformBlockFn) -> Result<Expr> {
         let parser = move |block_content: ParseStream| {
             let forked_block_content = block_content.fork();
@@ -209,7 +212,8 @@ impl Parser {
         }))
     }
 
-    /// Check whether the next token in the stream is a closing tag to decide whether the node element has children.
+    /// Check whether the next token in the stream is a closing tag to decide
+    /// whether the node element has children.
     fn element_has_children(&self, tag_open_name: &NodeName, input: ParseStream) -> Result<bool> {
         // An empty input at this point means the tag wasn't closed.
         if input.is_empty() {
@@ -224,7 +228,8 @@ impl Parser {
                 // If the next token is a matching close tag then there are no child nodes.
                 return Ok(false);
             } else {
-                // If the next token is a closing tag with a different name it's an invalid tree.
+                // If the next token is a closing tag with a different name it's an invalid
+                // tree.
                 return Err(input.error("close tag has no corresponding open tag"));
             }
         }
@@ -232,7 +237,8 @@ impl Parser {
         Ok(true)
     }
 
-    /// Parse the stream as opening or self-closing tag and extract its attributes.
+    /// Parse the stream as opening or self-closing tag and extract its
+    /// attributes.
     fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool)> {
         input.parse::<Token![<]>()?;
         let name = self.node_name(input)?;
@@ -448,9 +454,9 @@ impl Parser {
 
     /// Parse the stream as punctuated idents.
     ///
-    /// We can't replace this with [`Punctuated::parse_separated_nonempty`] since
-    /// that doesn't support reserved keywords. Might be worth to consider a PR
-    /// upstream.
+    /// We can't replace this with [`Punctuated::parse_separated_nonempty`]
+    /// since that doesn't support reserved keywords. Might be worth to
+    /// consider a PR upstream.
     ///
     /// [`Punctuated::parse_separated_nonempty`]: https://docs.rs/syn/1.0.58/syn/punctuated/struct.Punctuated.html#method.parse_separated_nonempty
     fn node_name_punctuated_ident<T: Parse, F: Peek, X: From<Ident>>(
