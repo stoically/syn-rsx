@@ -31,10 +31,10 @@ impl Parser {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
         while !input.cursor().eof() {
-            let mut parsed_node = self.node(input)?;
+            let mut parsed_nodes = self.node(input)?;
 
             if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
-                if &parsed_node.r#type() != type_of_top_level_nodes {
+                if &parsed_nodes[0].r#type() != type_of_top_level_nodes {
                     return Err(input.error(format!(
                         "top level nodes need to be of type {}",
                         type_of_top_level_nodes
@@ -42,21 +42,8 @@ impl Parser {
                 }
             }
 
-            if self.config.flat_tree {
-                let mut children = parsed_node
-                    .children_mut()
-                    .map(|children| children.drain(..))
-                    .into_iter()
-                    .flatten()
-                    .collect::<Vec<_>>();
-
-                nodes.push(parsed_node);
-                nodes.append(&mut children);
-            } else {
-                nodes.push(parsed_node);
-            }
-
             top_level_nodes += 1;
+            nodes.append(&mut parsed_nodes);
         }
 
         if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {
@@ -76,8 +63,8 @@ impl Parser {
     /// To improve performance it peeks the next 1-3 tokens and calls the according node parser function depening on that.
     //
     // TODO: Convert to "loop over tokens", where nodes are the tokens?
-    fn node(&self, input: ParseStream) -> Result<Node> {
-        let node = if input.peek(Token![<]) {
+    fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
+        let mut node = if input.peek(Token![<]) {
             if input.peek2(Token![!]) {
                 if input.peek3(Ident) {
                     self.doctype(input)
@@ -95,7 +82,20 @@ impl Parser {
             self.text(input)
         }?;
 
-        Ok(node)
+        if self.config.flat_tree {
+            let mut children = node
+                .children_mut()
+                .map(|children| children.drain(..))
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>();
+
+            let mut nodes = vec![node];
+            nodes.append(&mut children);
+            Ok(nodes)
+        } else {
+            Ok(vec![node])
+        }
     }
 
     /// Parse the stream as [`Node::Text`].
@@ -197,7 +197,7 @@ impl Parser {
                     break;
                 }
 
-                children.push(self.node(fork)?);
+                children.append(&mut self.node(fork)?);
             }
 
             self.tag_close(fork)?;
@@ -383,7 +383,7 @@ impl Parser {
                 break;
             }
 
-            children.push(self.node(input)?);
+            children.append(&mut self.node(input)?);
         }
 
         Ok(Node::Fragment(NodeFragment { children }))
