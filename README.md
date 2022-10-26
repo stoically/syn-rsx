@@ -79,8 +79,8 @@ You might want to check out the [html-to-string-macro example] as well.
   ```html
   <{ let block = "in node name position"; } />
   <div>{ let block = "in node position"; }</div>
-  <div { let block="in attribute position" ; } />
-  <div key="{" let block="in attribute value position" ; } />
+  <div { let block = "in attribute position"; } />
+  <div key={ let block = "in attribute value position"; } />
   ```
 
 - **Attribute values can be any valid syn expression without requiring braces**
