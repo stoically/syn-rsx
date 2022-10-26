@@ -86,7 +86,7 @@ You might want to check out the [html-to-string-macro example] as well.
 - **Attribute values can be any valid syn expression without requiring braces**
 
   ```html
-  <div key="some::value()" />
+  <div key=some::value() />
   ```
 
 - **Helpful error reporting out of the box**
