@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
 
-use extrude::extrude;
 use eyre::Result;
 use quote::quote;
 use syn::ExprBlock;
@@ -46,7 +45,7 @@ fn test_single_element_with_text() -> Result<()> {
     };
 
     let nodes = parse2(tokens)?;
-    let child = extrude!(get_element_child(&nodes, 0, 0), Node::Text(child)).expect("child");
+    let Node::Text(child) = get_element_child(&nodes, 0, 0) else { panic!("expected child") };
 
     assert_eq!(String::try_from(&child.value)?, "bar");
 
@@ -60,14 +59,10 @@ fn test_reserved_keyword_attributes() -> Result<()> {
     };
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
+    let Some(Node::Attribute(attribute)) = element.attributes.get(0) else { panic!("expected attribute") };
 
     assert_eq!(element.name.to_string(), "input");
-    assert_eq!(
-        extrude!(element.attributes.get(0), Some(Node::Attribute(attribute)))
-            .map(|attribute| attribute.key.to_string())
-            .as_deref(),
-        Some("type")
-    );
+    assert_eq!(attribute.key.to_string(), "type");
 
     Ok(())
 }
@@ -248,7 +243,7 @@ fn test_transform_block_some() -> Result<()> {
     });
 
     let nodes = parse2_with_config(tokens, config)?;
-    let block = extrude!(get_element_child(&nodes, 0, 0), Node::Block(block)).expect("block");
+    let Node::Block(block) = get_element_child(&nodes, 0, 0) else { panic!("expected block") };
 
     assert_eq!(
         match block.value.as_ref() {
@@ -292,7 +287,7 @@ fn test_doctype() -> Result<()> {
     };
 
     let nodes = parse2(tokens)?;
-    let doctype = extrude!(nodes.get(0), Some(Node::Doctype(doctype))).expect("doctype");
+    let Some(Node::Doctype(doctype)) = nodes.get(0) else { panic!("expected doctype") };
 
     assert_eq!(String::try_from(&doctype.value)?, "html");
 
@@ -310,9 +305,9 @@ fn test_comment() -> Result<()> {
     };
 
     let nodes = parse2(tokens)?;
-    let comment1 = extrude!(nodes.get(0), Some(Node::Comment(comment))).expect("comment");
-    let comment2 =
-        extrude!(get_element_child(&nodes, 1, 0), Node::Comment(comment)).expect("comment");
+    let Some(Node::Comment(comment1)) = nodes.get(0) else { panic!("expected comment") };
+    let Node::Comment(comment2) =
+        get_element_child(&nodes, 1, 0) else { panic!("expected comment") };
 
     assert_eq!(String::try_from(&comment1.value)?, "comment1");
     assert_eq!(String::try_from(&comment2.value)?, "comment2");
@@ -329,7 +324,7 @@ fn test_fragment() -> Result<()> {
     };
 
     let nodes = parse2(tokens)?;
-    let fragment = extrude!(nodes.get(0), Some(Node::Fragment(fragment))).expect("fragment");
+    let Some(Node::Fragment(fragment)) = nodes.get(0) else { panic!("expected fragment") };
 
     assert_eq!(fragment.children.len(), 1);
 
@@ -352,7 +347,8 @@ fn test_reserved_keywords() -> Result<()> {
 }
 
 fn get_element(nodes: &[Node], element_index: usize) -> &NodeElement {
-    extrude!(nodes.get(element_index), Some(Node::Element(element))).expect("element")
+    let Some(Node::Element(element)) = nodes.get(element_index) else { panic!("expected element") };
+    element
 }
 
 fn get_element_attribute(
@@ -360,17 +356,15 @@ fn get_element_attribute(
     element_index: usize,
     attribute_index: usize,
 ) -> &NodeAttribute {
-    let element =
-        extrude!(nodes.get(element_index), Some(Node::Element(element))).expect("element");
-    extrude!(
-        element.attributes.get(attribute_index),
-        Some(Node::Attribute(attribute))
-    )
-    .expect("attribute")
+    let Some(Node::Element(element)) =
+        nodes.get(element_index) else { panic!("expected element") };
+    let Some(Node::Attribute(attribute)) =
+        element.attributes.get(attribute_index) else { panic!("expected attribute") };
+
+    attribute
 }
 
 fn get_element_child(nodes: &[Node], element_index: usize, child_index: usize) -> &Node {
-    let element =
-        extrude!(nodes.get(element_index), Some(Node::Element(element))).expect("element");
+    let Some(Node::Element(element)) = nodes.get(element_index) else { panic!("expected element") };
     element.children.get(child_index).expect("child")
 }
