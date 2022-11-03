@@ -11,7 +11,7 @@
 ```rust
 use std::convert::TryFrom;
 
-use extrude::extrude;
+use eyre::bail;
 use quote::quote;
 use syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
 
@@ -22,9 +22,9 @@ let tokens = quote! { <hello world>"hi"</hello> };
 let nodes = parse2(tokens)?;
 
 // Extract some specific nodes from the tree.
-let element = extrude!(&nodes[0], Node::Element(element)).unwrap();
-let attribute = extrude!(&element.attributes[0], Node::Attribute(attribute)).unwrap();
-let text = extrude!(&element.children[0], Node::Text(text)).unwrap();
+let Node::Element(element) = &nodes[0] else { bail!("element") };
+let Node::Attribute(attribute) = &element.attributes[0] else { bail!("attribute") };
+let Node::Text(text) = &element.children[0] else { bail!("text") };
 
 // Work with the nodes.
 assert_eq!(element.name.to_string(), "hello");
