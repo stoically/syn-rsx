@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0-beta.1] - 2022-11-03
+
+### Documentation
+
+- Update README
+- Update example
+- Update html macro docs
+- Add link to example
+- Fix node links
+- Improve parser docs
+- Remove TODO
+- Fix attribute value example ([#28](https://github.com/orhun/git-cliff/issues/28))
+- Fix blocks example ([#29](https://github.com/orhun/git-cliff/issues/29))
+- Fix typo ([#30](https://github.com/orhun/git-cliff/issues/30))
+
+### Features
+
+- [**breaking**] Make path_to_string private
+
+### Miscellaneous Tasks
+
+- Add rustfmt.toml
+
+### Refactor
+
+- [**breaking**] Drop `NodeName::span` method
+- Pass block_transform a forked stream
+- Move flat tree converter to node method
+- Replace extrude with let-else ([#31](https://github.com/orhun/git-cliff/issues/31))
+
+### Ci
+
+- Switch fmt to nightly toolchain
+
+### Revert
+
+- Move flat tree converter back into node parser
+
 ## [0.9.0-alpha.1] - 2022-10-21
 
 ### Miscellaneous Tasks
