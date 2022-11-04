@@ -171,6 +171,20 @@ fn test_coloned_attribute_name() -> Result<()> {
 }
 
 #[test]
+fn test_mixed_colon_and_dash_attribute_name() -> Result<()> {
+    let tokens = quote! {
+        <div on:ce-click={foo} />
+    };
+
+    let nodes = parse2(tokens)?;
+    let attribute = get_element_attribute(&nodes, 0, 0);
+
+    assert_eq!(attribute.key.to_string(), "on:ce-click");
+
+    Ok(())
+}
+
+#[test]
 fn test_block_as_attribute() -> Result<()> {
     let tokens = quote! {
         <div {attribute} />

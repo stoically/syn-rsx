@@ -2,7 +2,7 @@
 
 use std::vec;
 
-use proc_macro2::{Span, TokenStream, TokenTree};
+use proc_macro2::{Punct, Span, TokenStream, TokenTree};
 use syn::{
     braced,
     ext::IdentExt,
@@ -424,12 +424,11 @@ impl Parser {
                         },
                     })
                 })
-        } else if input.peek2(Colon) {
-            self.node_name_punctuated_ident::<Colon, fn(_) -> Colon, Ident>(input, Colon)
-                .map(NodeName::Colon)
-        } else if input.peek2(Dash) {
-            self.node_name_punctuated_ident::<Dash, fn(_) -> Dash, Ident>(input, Dash)
-                .map(NodeName::Dash)
+        } else if input.peek2(Colon) || input.peek2(Dash) {
+            self.node_name_punctuated_ident_with_alternate::<Punct, fn(_) -> Colon, fn(_) -> Dash, Ident>(
+                input, Colon, Dash,
+            )
+            .map(NodeName::Punctuated)
         } else if input.peek(Brace) {
             let fork = &input.fork();
             let value = self.block_expr(fork)?;
@@ -472,6 +471,36 @@ impl Parser {
             segments.push_value(ident.clone().into());
 
             if fork.peek(punct) {
+                segments.push_punct(fork.parse()?);
+            } else {
+                break;
+            }
+        }
+
+        if segments.len() > 1 {
+            input.advance_to(fork);
+            Ok(segments)
+        } else {
+            Err(fork.error("expected punctuated node name"))
+        }
+    }
+
+    /// Parse the stream as punctuated idents, with two possible punctuations
+    /// available
+    fn node_name_punctuated_ident_with_alternate<T: Parse, F: Peek, G: Peek, X: From<Ident>>(
+        &self,
+        input: ParseStream,
+        punct: F,
+        alternate_punct: G,
+    ) -> Result<Punctuated<X, T>> {
+        let fork = &input.fork();
+        let mut segments = Punctuated::<X, T>::new();
+
+        while !fork.is_empty() && fork.peek(Ident::peek_any) {
+            let ident = Ident::parse_any(fork)?;
+            segments.push_value(ident.clone().into());
+
+            if fork.peek(punct) || fork.peek(alternate_punct) {
                 segments.push_punct(fork.parse()?);
             } else {
                 break;
