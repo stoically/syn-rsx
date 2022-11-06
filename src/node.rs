@@ -2,11 +2,14 @@
 
 use std::{convert::TryFrom, fmt, ops::Deref};
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Punct, TokenStream};
 use quote::ToTokens;
-use syn::{punctuated::Punctuated, token::Colon, Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit};
+use syn::{
+    punctuated::{Pair, Punctuated},
+    Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit,
+};
 
-use crate::{punctuation::Dash, Error};
+use crate::Error;
 
 /// Node types.
 #[derive(Debug, PartialEq, Eq)]
@@ -226,11 +229,9 @@ pub enum NodeName {
     /// be separated by double colons, e.g. `<foo::bar />`.
     Path(ExprPath),
 
-    /// Name separated by dashes, e.g. `<div data-foo="bar" />`.
-    Dash(Punctuated<Ident, Dash>),
-
-    /// Name separated by colons, e.g. `<div on:click={foo} />`.
-    Colon(Punctuated<Ident, Colon>),
+    /// Name separated by punctuation, e.g. `<div data-foo="bar" />` or `<div
+    /// data:foo="bar" />`.
+    Punctuated(Punctuated<Ident, Punct>),
 
     /// Arbitrary rust code in braced `{}` blocks.
     Block(Expr),
@@ -256,12 +257,23 @@ impl PartialEq for NodeName {
                 Self::Path(other) => this == other,
                 _ => false,
             },
-            Self::Dash(this) => match other {
-                Self::Dash(other) => this == other,
-                _ => false,
-            },
-            Self::Colon(this) => match other {
-                Self::Colon(other) => this == other,
+            // can't be derived automatically because `Punct` doesn't impl `PartialEq`
+            Self::Punctuated(this) => match other {
+                Self::Punctuated(other) => {
+                    this.pairs()
+                        .zip(other.pairs())
+                        .all(|(this, other)| match (this, other) {
+                            (
+                                Pair::Punctuated(this_ident, this_punct),
+                                Pair::Punctuated(other_ident, other_punct),
+                            ) => {
+                                this_ident == other_ident
+                                    && this_punct.as_char() == other_punct.as_char()
+                            }
+                            (Pair::End(this), Pair::End(other)) => this == other,
+                            _ => false,
+                        })
+                }
                 _ => false,
             },
             Self::Block(this) => match other {
@@ -276,8 +288,7 @@ impl ToTokens for NodeName {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             NodeName::Path(name) => name.to_tokens(tokens),
-            NodeName::Dash(name) => name.to_tokens(tokens),
-            NodeName::Colon(name) => name.to_tokens(tokens),
+            NodeName::Punctuated(name) => name.to_tokens(tokens),
             NodeName::Block(name) => name.to_tokens(tokens),
         }
     }
@@ -290,16 +301,16 @@ impl fmt::Display for NodeName {
             "{}",
             match self {
                 NodeName::Path(expr) => path_to_string(expr),
-                NodeName::Dash(name) => name
-                    .iter()
-                    .map(|ident| ident.to_string())
-                    .collect::<Vec<String>>()
-                    .join("-"),
-                NodeName::Colon(name) => name
-                    .iter()
-                    .map(|ident| ident.to_string())
-                    .collect::<Vec<String>>()
-                    .join(":"),
+                NodeName::Punctuated(name) => {
+                    name.pairs()
+                        .flat_map(|pair| match pair {
+                            Pair::Punctuated(ident, punct) => {
+                                [ident.to_string(), punct.to_string()]
+                            }
+                            Pair::End(ident) => [ident.to_string(), "".to_string()],
+                        })
+                        .collect::<String>()
+                }
                 NodeName::Block(_) => String::from("{}"),
             }
         )
