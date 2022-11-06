@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0-beta.2] - 2022-11-06
+
+### Features
+
+- [**breaking**] Replace Colon and Dash with a merged variant ([#34](https://github.com/orhun/git-cliff/issues/34))
+
 ## [0.9.0-beta.1] - 2022-11-03
 
 ### Documentation
