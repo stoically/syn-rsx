@@ -79,6 +79,9 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>, context: Option<NodeType>) -> (String, V
 
 /// Converts HTML to `String`.
 ///
+/// Values returned from brace blocks `{}` are expected to return something that
+/// implements `Display`.
+///
 /// See [syn-rsx docs](https://docs.rs/syn-rsx/) for supported tags and syntax.
 ///
 /// # Example
