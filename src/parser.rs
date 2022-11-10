@@ -189,7 +189,7 @@ impl Parser {
         if self.tag_close(&input.fork()).is_ok() {
             return Err(fork.error("close tag has no corresponding open tag"));
         }
-        let (name, attributes, self_closing) = self.tag_open(fork)?;
+        let (name, attributes, self_closing, mut span) = self.tag_open(fork)?;
 
         let mut children = vec![];
         if !self_closing {
@@ -201,14 +201,16 @@ impl Parser {
                 children.append(&mut self.node(fork)?);
             }
 
-            self.tag_close(fork)?;
-        }
-        input.advance_to(fork);
+            let (_, closing_span) = self.tag_close(fork)?;
+            span = span.join(closing_span).unwrap_or(span);
+        };
 
+        input.advance_to(fork);
         Ok(Node::Element(NodeElement {
             name,
             attributes,
             children,
+            span,
         }))
     }
 
@@ -223,7 +225,7 @@ impl Parser {
             ));
         }
 
-        if let Ok(tag_close_name) = self.tag_close(&input.fork()) {
+        if let Ok((tag_close_name, _)) = self.tag_close(&input.fork()) {
             if tag_open_name == &tag_close_name {
                 // If the next token is a matching close tag then there are no child nodes.
                 return Ok(false);
@@ -239,14 +241,15 @@ impl Parser {
 
     /// Parse the stream as opening or self-closing tag and extract its
     /// attributes.
-    fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool)> {
+    fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool, Span)> {
+        let span_start = input.span();
         input.parse::<Token![<]>()?;
         let name = self.node_name(input)?;
 
         let mut attributes = TokenStream::new();
-        let self_closing = loop {
-            if let Ok(self_closing) = self.tag_open_end(input) {
-                break self_closing;
+        let (self_closing, span_end) = loop {
+            if let Ok(end) = self.tag_open_end(input) {
+                break end;
             }
 
             if input.is_empty() {
@@ -264,25 +267,33 @@ impl Parser {
             vec![]
         };
 
-        Ok((name, attributes, self_closing))
+        let span = span_start.join(span_end).unwrap_or(name.span());
+
+        Ok((name, attributes, self_closing, span))
     }
 
     /// Check whether an element tag ended or is self-closing.
-    fn tag_open_end(&self, input: ParseStream) -> Result<bool> {
+    fn tag_open_end(&self, input: ParseStream) -> Result<(bool, Span)> {
+        let span_start = input.span();
         let self_closing = input.parse::<Option<Token![/]>>()?.is_some();
+        let span_end = input.span();
         input.parse::<Token![>]>()?;
+        let span = span_start.join(span_end).unwrap_or(span_start);
 
-        Ok(self_closing)
+        Ok((self_closing, span))
     }
 
-    /// Parse a closing tag and return its [`NodeName`].
-    fn tag_close(&self, input: ParseStream) -> Result<NodeName> {
+    /// Parse a closing tag and return its [`NodeName`] and [Span]
+    fn tag_close(&self, input: ParseStream) -> Result<(NodeName, Span)> {
+        let start_span = input.span();
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
         let name = self.node_name(input)?;
+        let span_end = input.span();
         input.parse::<Token![>]>()?;
 
-        Ok(name)
+        let span = start_span.join(span_end).unwrap_or(span_end);
+        Ok((name, span))
     }
 
     /// Parse the stream as vector of attributes.
@@ -325,13 +336,18 @@ impl Parser {
                 None
             };
             input.advance_to(fork);
-
-            Ok(Node::Attribute(NodeAttribute { key, value }))
+            let span = if let Some(ref val) = value {
+                key.span().join(val.span()).unwrap_or(key.span())
+            } else {
+                key.span()
+            };
+            Ok(Node::Attribute(NodeAttribute { key, value, span }))
         }
     }
 
     /// Parse the stream as [`Node::Doctype`].
     fn doctype(&self, input: ParseStream) -> Result<Node> {
+        let span_start = input.span();
         input.parse::<Token![<]>()?;
         input.parse::<Token![!]>()?;
         let ident = input.parse::<Ident>()?;
@@ -339,6 +355,8 @@ impl Parser {
             return Err(input.error("expected Doctype"));
         }
         let doctype = input.parse::<Ident>()?;
+        let span_end = input.span();
+        let doctype_span = doctype.span();
         input.parse::<Token![>]>()?;
 
         let mut segments = Punctuated::new();
@@ -355,11 +373,13 @@ impl Parser {
             .into(),
         );
 
-        Ok(Node::Doctype(NodeDoctype { value }))
+        let span = span_start.join(span_end).unwrap_or(doctype_span);
+        Ok(Node::Doctype(NodeDoctype { value, span }))
     }
 
     /// Parse the stream as [`Node::Comment`].
     fn comment(&self, input: ParseStream) -> Result<Node> {
+        let span_start = input.span();
         input.parse::<Token![<]>()?;
         input.parse::<Token![!]>()?;
         input.parse::<Token![-]>()?;
@@ -367,14 +387,16 @@ impl Parser {
         let value = NodeValueExpr::new(input.parse::<ExprLit>()?.into());
         input.parse::<Token![-]>()?;
         input.parse::<Token![-]>()?;
+        let span_end = input.span();
         input.parse::<Token![>]>()?;
 
-        Ok(Node::Comment(NodeComment { value }))
+        let span = span_start.join(span_end).unwrap_or(value.span());
+        Ok(Node::Comment(NodeComment { value, span }))
     }
 
     /// Parse the stream as [`Node::Fragement`].
     fn fragment(&self, input: ParseStream) -> Result<Node> {
-        self.fragment_open(input)?;
+        let mut span = self.fragment_open(input)?;
 
         let mut children = vec![];
         loop {
@@ -382,32 +404,41 @@ impl Parser {
                 return Err(input.error("unexpected end of input"));
             }
 
-            if self.fragment_close(&input.fork()).is_ok() {
-                self.fragment_close(input)?;
+            let fork = input.fork();
+            if let Ok(closing_span) = self.fragment_close(&fork) {
+                input.advance_to(&fork);
+                span = span.join(closing_span).unwrap_or(span);
                 break;
             }
 
             children.append(&mut self.node(input)?);
         }
 
-        Ok(Node::Fragment(NodeFragment { children }))
+        Ok(Node::Fragment(NodeFragment { children, span }))
     }
 
     /// Parse the stream as opening fragment tag.
-    fn fragment_open(&self, input: ParseStream) -> Result<()> {
+    fn fragment_open(&self, input: ParseStream) -> Result<Span> {
+        let span_start = input.span();
         input.parse::<Token![<]>()?;
+        let span_end = input.span();
         input.parse::<Token![>]>()?;
 
-        Ok(())
+        let span = span_start.join(span_end).unwrap_or(span_start);
+        Ok(span)
     }
 
     /// Parse the stream as closing fragment tag.
-    fn fragment_close(&self, input: ParseStream) -> Result<()> {
+    fn fragment_close(&self, input: ParseStream) -> Result<Span> {
+        let span_start = input.span();
         input.parse::<Token![<]>()?;
         input.parse::<Token![/]>()?;
+        let span_end = input.span();
         input.parse::<Token![>]>()?;
 
-        Ok(())
+        let span = span_start.join(span_end).unwrap_or(span_end);
+
+        Ok(span)
     }
 
     /// Parse the stream as [`NodeName`].
