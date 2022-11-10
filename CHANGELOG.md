@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2022-11-10
+
+### Documentation
+
+- Remove outdated node link ([#36](https://github.com/orhun/git-cliff/issues/36))
+- Hint regarding braced blocks ([#38](https://github.com/orhun/git-cliff/issues/38))
+- Fix typo ([#39](https://github.com/orhun/git-cliff/issues/39))
+
 ## [0.9.0-beta.2] - 2022-11-06
 
 ### Features
