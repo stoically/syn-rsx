@@ -1,7 +1,7 @@
 [package]
 name = "html-to-string-macro"
 description = "simple html to string macro powered by syn-rsx"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["stoically <stoically@protonmail.com>"]
 keywords = ["html-to-string", "html", "macro"]
 edition = "2021"
