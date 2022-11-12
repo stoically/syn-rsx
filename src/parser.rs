@@ -3,6 +3,7 @@
 use std::vec;
 
 use proc_macro2::{Punct, Span, TokenStream, TokenTree};
+use quote::ToTokens;
 use syn::{
     braced,
     ext::IdentExt,
@@ -148,6 +149,71 @@ impl Parser {
                 TokenTree::Group(block_group) => Ok((parser.parse2(block_group.stream())?, next)),
                 _ => Err(cursor.error("unexpected: no Group in TokenTree found")),
             }
+        })
+    }
+
+    fn parse_node_name(&self, input: ParseStream) -> Result<()> {
+        let parser = move |block_content: ParseStream| {
+            let forked_block_content = block_content.fork();
+
+            todo!()
+        };
+
+        // Stepping ends if
+        // - Ident after Ident
+        // - Encountering a `=`
+        // - Encountering a not allowed character
+        //
+        // > Attribute names must consist of one or more characters other
+        // > than the space characters, U+0000 NULL, U+0022 QUOTATION MARK
+        // > ("), U+0027 APOSTROPHE ('), U+003E GREATER-THAN SIGN (>),
+        // > U+002F SOLIDUS (/), and U+003D EQUALS SIGN (=) characters, the
+        // > control characters, and any characters that are not defined by
+        // > Unicode.
+        //
+        // Unsolvable with the given token stream? We can't exactly know where an
+        // attribute name might end, since the tokenizer doesn't care about whitespaces.
+        //
+        // Try: Nightly and check span start/end for whitespaces to detect attribute key
+        // without value.
+        input.step(|cursor| {
+            let mut name = TokenStream::new();
+            let mut rest = *cursor;
+            let mut last_token_ident = false;
+            while let Some((tree, next)) = rest.token_tree() {
+                match &tree {
+                    TokenTree::Group(_) => {
+                        return Err(cursor.error("Braced block not supported here"));
+                    }
+                    TokenTree::Punct(punct) => {
+                        last_token_ident = false;
+
+                        // If we encounter an equal sign, then the node name stops here and the
+                        // value follows.
+                        if punct.as_char() == '=' {
+                            return Ok(((), next));
+                        }
+
+                        punct.to_tokens(&mut name);
+                    }
+                    TokenTree::Ident(ident) => {
+                        // If the last token was already an ident, then the node name ends here,
+                        // since another ident means that it's a new node name.
+                        if last_token_ident {
+                            return Ok(((), rest));
+                        }
+
+                        last_token_ident = true;
+                        ident.to_tokens(&mut name);
+                    }
+                    TokenTree::Literal(literal) => {
+                        last_token_ident = false;
+                        literal.to_tokens(&mut name);
+                    }
+                }
+            }
+
+            Err(cursor.error("Unexpected end of node name"))
         })
     }
 
