@@ -2,10 +2,11 @@
 
 use std::{convert::TryFrom, fmt, ops::Deref};
 
-use proc_macro2::{Punct, TokenStream};
+use proc_macro2::{Punct, Span, TokenStream};
 use quote::ToTokens;
 use syn::{
     punctuated::{Pair, Punctuated},
+    spanned::Spanned,
     Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit,
 };
 
@@ -70,7 +71,7 @@ impl Node {
     /// Get node children.
     pub fn children(&self) -> Option<&Vec<Node>> {
         match self {
-            Self::Fragment(NodeFragment { children })
+            Self::Fragment(NodeFragment { children, .. })
             | Self::Element(NodeElement { children, .. }) => Some(children),
             _ => None,
         }
@@ -79,9 +80,23 @@ impl Node {
     /// Get mutable node children.
     pub fn children_mut(&mut self) -> Option<&mut Vec<Node>> {
         match self {
-            Self::Fragment(NodeFragment { children })
+            Self::Fragment(NodeFragment { children, .. })
             | Self::Element(NodeElement { children, .. }) => Some(children),
             _ => None,
+        }
+    }
+}
+
+impl Spanned for Node {
+    fn span(&self) -> Span {
+        match self {
+            Node::Element(node) => node.span(),
+            Node::Attribute(node) => node.span(),
+            Node::Text(node) => node.span(),
+            Node::Comment(node) => node.span(),
+            Node::Doctype(node) => node.span(),
+            Node::Block(node) => node.span(),
+            Node::Fragment(node) => node.span(),
         }
     }
 }
@@ -116,11 +131,22 @@ pub struct NodeElement {
     pub attributes: Vec<Node>,
     /// Children of the element node.
     pub children: Vec<Node>,
+    /// Source span of the element for error reporting.
+    ///
+    /// Note: This should cover the entire node in nightly, but is a "close
+    /// enough" approximation in stable until [Span::join] is stabilized.
+    pub span: Span,
 }
 
 impl fmt::Display for NodeElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeElement")
+    }
+}
+
+impl Spanned for NodeElement {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -133,11 +159,22 @@ pub struct NodeAttribute {
     pub key: NodeName,
     /// Value of the element attribute.
     pub value: Option<NodeValueExpr>,
+    /// Source span of the attribute for error reporting.
+    ///
+    /// Note: This should cover the entire node in nightly, but is a "close
+    /// enough" approximation in stable until [Span::join] is stabilized.
+    pub span: Span,
 }
 
 impl fmt::Display for NodeAttribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeAttribute")
+    }
+}
+
+impl Spanned for NodeAttribute {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -160,6 +197,12 @@ impl fmt::Display for NodeText {
     }
 }
 
+impl Spanned for NodeText {
+    fn span(&self) -> Span {
+        self.value.span()
+    }
+}
+
 /// Comment node.
 ///
 /// Comment: `<!-- "comment" -->`, currently has the same restrictions as
@@ -168,11 +211,22 @@ impl fmt::Display for NodeText {
 pub struct NodeComment {
     /// The comment value.
     pub value: NodeValueExpr,
+    /// Source span of the comment for error reporting.
+    ///
+    /// Note: This should cover the entire node in nightly, but is a "close
+    /// enough" approximation in stable until [Span::join] is stabilized.
+    pub span: Span,
 }
 
 impl fmt::Display for NodeComment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeComment")
+    }
+}
+
+impl Spanned for NodeComment {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -184,11 +238,22 @@ impl fmt::Display for NodeComment {
 pub struct NodeDoctype {
     /// The doctype value.
     pub value: NodeValueExpr,
+    /// Source span of the doctype node for error reporting.
+    ///
+    /// Note: This should cover the entire node in nightly, but is a "close
+    /// enough" approximation in stable until [Span::join] is stabilized.
+    pub span: Span,
 }
 
 impl fmt::Display for NodeDoctype {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeDoctype")
+    }
+}
+
+impl Spanned for NodeDoctype {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -199,11 +264,22 @@ impl fmt::Display for NodeDoctype {
 pub struct NodeFragment {
     /// Children of the fragment node.
     pub children: Vec<Node>,
+    /// Source span of the fragment for error reporting.
+    ///
+    /// Note: This should cover the entire node in nightly, but is a "close
+    /// enough" approximation in stable until [Span::join] is stabilized.
+    pub span: Span,
 }
 
 impl fmt::Display for NodeFragment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeFragment")
+    }
+}
+
+impl Spanned for NodeFragment {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -219,6 +295,12 @@ pub struct NodeBlock {
 impl fmt::Display for NodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeBlock")
+    }
+}
+
+impl Spanned for NodeBlock {
+    fn span(&self) -> Span {
+        self.value.span()
     }
 }
 
