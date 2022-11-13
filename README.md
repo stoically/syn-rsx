@@ -55,8 +55,7 @@ You might want to check out the [html-to-string-macro example] as well.
 - **Node names separated by dash, colon or double colon**
 
   ```html
-  <tag-name attribute-key="value" />
-  <tag:name attribute:key="value" />
+  <tag-name some:attribute-key="value" />
   <tag::name attribute::key="value" />
   ```
 
@@ -97,6 +96,20 @@ You might want to check out the [html-to-string-macro example] as well.
     |
   5 |     html_to_string! { <div> };
     |                        ^^^
+  ```
+
+- **Possibility to get the span for a whole node**
+
+  This can be used to improve error reporting, e.g.
+
+  ```rust,no-run
+     error: Invalid element
+     --> test-app\src\main.rs:14:13
+     |
+  14 | /             <div>
+  15 | |                 "invalid node for some consumer specific reason"
+  16 | |             </div>
+     | |__________________^
   ```
 
 - **Customization**
