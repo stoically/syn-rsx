@@ -63,8 +63,7 @@
 //!   # use quote::quote;
 //!   # use syn_rsx::parse2;
 //!   # parse2(quote! {
-//!   <tag-name attribute-key="value" />
-//!   <tag:name attribute:key="value" />
+//!   <tag-name some:attribute-key="value" />
 //!   <tag::name attribute::key="value" />
 //!   # }).unwrap();
 //!   ```
@@ -124,6 +123,20 @@
 //!   5 |     html_to_string! { <div> };
 //!     |                        ^^^
 //!   ```
+//!
+//!- **Possibility to get the span for a whole node**
+//!
+//!  This can be used to improve error reporting, e.g.
+//!
+//!  ```rust,no-run
+//!     error: Invalid element
+//!     --> test-app\src\main.rs:14:13
+//!     |
+//!  14 | /             <div>
+//!  15 | |                 "invalid node for some consumer specific reason"
+//!  16 | |             </div>
+//!     | |__________________^
+//!  ```
 //!
 //! - **Customization**
 //!
