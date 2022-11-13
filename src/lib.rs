@@ -124,7 +124,7 @@
 //!     |                        ^^^
 //!   ```
 //!
-//!- **Possibility to get the span for a whole node**
+//! - **Possibility to get the span for a whole node**
 //!
 //!  This can be used to improve error reporting, e.g.
 //!
