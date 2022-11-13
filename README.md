@@ -103,8 +103,8 @@ You might want to check out the [html-to-string-macro example] as well.
   This can be used to improve error reporting, e.g.
 
   ```rust,no-run
-     error: Invalid element
-     --> test-app\src\main.rs:14:13
+  error: Invalid element
+  --> examples/src/main.rs:14:13
      |
   14 | /             <div>
   15 | |                 "invalid node for some consumer specific reason"
