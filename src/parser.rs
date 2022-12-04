@@ -3,6 +3,7 @@
 use std::vec;
 
 use proc_macro2::{Punct, Span, TokenStream, TokenTree};
+use quote::ToTokens;
 use syn::{
     braced,
     ext::IdentExt,
@@ -81,6 +82,8 @@ impl Parser {
             self.text(input)
         }?;
 
+        // dbg!(node.r#type(), node.span().start(), node.span().end());
+
         if self.config.flat_tree {
             let mut children = node
                 .children_mut()
@@ -102,6 +105,35 @@ impl Parser {
         let value = input.parse::<ExprLit>()?.into();
 
         Ok(Node::Text(NodeText { value }))
+    }
+
+    fn text_nightly(&self, input: ParseStream) -> Result<Node> {
+        // dbg!(input.span().start(), input.span().end());
+        input.step(|cursor| {
+            let mut name = TokenStream::new();
+            let mut rest = *cursor;
+            let mut last_token_ident = false;
+            let mut i = 0;
+            while let Some((tree, next)) = rest.token_tree() {
+                // dbg!(tree.to_string());
+                // dbg!(tree.span().start(), tree.span().end());
+                // dbg!(rest.span().start(), rest.span().end());
+                match tree {
+                    TokenTree::Punct(punct) => {
+                        if punct.as_char() == '<' {
+                            return Ok(((), next));
+                        }
+                    }
+                    _ => {
+                        rest = next;
+                    }
+                }
+            }
+
+            Err(cursor.error("Unexpected end of node name"))
+        })?;
+
+        todo!()
     }
 
     /// Parse the stream as [`Node::Block`].
@@ -151,6 +183,71 @@ impl Parser {
         })
     }
 
+    fn parse_node_name(&self, input: ParseStream) -> Result<()> {
+        let parser = move |block_content: ParseStream| {
+            let forked_block_content = block_content.fork();
+
+            todo!()
+        };
+
+        // Stepping ends if
+        // - Ident after Ident
+        // - Encountering a `=`
+        // - Encountering a not allowed character
+        //
+        // > Attribute names must consist of one or more characters other
+        // > than the space characters, U+0000 NULL, U+0022 QUOTATION MARK
+        // > ("), U+0027 APOSTROPHE ('), U+003E GREATER-THAN SIGN (>),
+        // > U+002F SOLIDUS (/), and U+003D EQUALS SIGN (=) characters, the
+        // > control characters, and any characters that are not defined by
+        // > Unicode.
+        //
+        // Unsolvable with the given token stream? We can't exactly know where an
+        // attribute name might end, since the tokenizer doesn't care about whitespaces.
+        //
+        // Try: Nightly and check span start/end for whitespaces to detect attribute key
+        // without value.
+        input.step(|cursor| {
+            let mut name = TokenStream::new();
+            let mut rest = *cursor;
+            let mut last_token_ident = false;
+            while let Some((tree, next)) = rest.token_tree() {
+                match &tree {
+                    TokenTree::Group(_) => {
+                        return Err(cursor.error("Braced block not supported here"));
+                    }
+                    TokenTree::Punct(punct) => {
+                        last_token_ident = false;
+
+                        // If we encounter an equal sign, then the node name stops here and the
+                        // value follows.
+                        if punct.as_char() == '=' {
+                            return Ok(((), next));
+                        }
+
+                        punct.to_tokens(&mut name);
+                    }
+                    TokenTree::Ident(ident) => {
+                        // If the last token was already an ident, then the node name ends here,
+                        // since another ident means that it's a new node name.
+                        if last_token_ident {
+                            return Ok(((), rest));
+                        }
+
+                        last_token_ident = true;
+                        ident.to_tokens(&mut name);
+                    }
+                    TokenTree::Literal(literal) => {
+                        last_token_ident = false;
+                        literal.to_tokens(&mut name);
+                    }
+                }
+            }
+
+            Err(cursor.error("Unexpected end of node name"))
+        })
+    }
+
     /// Parse the given stream and span as [`Expr::Block`].
     fn block_content_to_block(&self, input: ParseStream, span: Span) -> Result<Expr> {
         Ok(ExprBlock {
@@ -184,7 +281,8 @@ impl Parser {
 
     /// Parse the given stream as [`NodeElement`].
     fn element(&self, input: ParseStream) -> Result<Node> {
-        let fork = &input.fork();
+        // let fork = &input.fork();
+        let fork = input;
 
         if self.tag_close(&input.fork()).is_ok() {
             return Err(fork.error("close tag has no corresponding open tag"));
@@ -202,7 +300,7 @@ impl Parser {
             }
 
             let (_, closing_span) = self.tag_close(fork)?;
-            span = span.join(closing_span).unwrap_or(span);
+            span = dbg!(span.join(closing_span)).unwrap_or(span);
         };
 
         input.advance_to(fork);
@@ -243,7 +341,9 @@ impl Parser {
     /// attributes.
     fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool, Span)> {
         let span_start = input.span();
+        dbg!(input.span().start(), input.span().end());
         input.parse::<Token![<]>()?;
+        dbg!(input.span().start(), input.span().end());
         let name = self.node_name(input)?;
 
         let mut attributes = TokenStream::new();

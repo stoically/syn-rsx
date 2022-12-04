@@ -9,13 +9,17 @@ repository = "https://github.com/stoically/syn-rsx"
 readme = "README.md"
 license = "MIT"
 
+[features]
+# default = ["unquoted-text"]
+# unquoted-text = ["proc-macro2/span-locations"]
+
 [lib]
 bench = false
 
 [dependencies]
-proc-macro2 = "1.0.47"
+proc-macro2 = { version = "1.0.47", features = ["span-locations"] }
 quote = "1.0.21"
-syn = { version = "1.0.102", features = ["full", "parsing", "extra-traits"] }
+syn = { version = "1.0.105", features = ["full", "parsing", "extra-traits"] }
 thiserror = "1.0.37"
 
 [dev-dependencies]

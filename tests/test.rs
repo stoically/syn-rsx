@@ -10,7 +10,9 @@ use syn_rsx::{
 #[test]
 fn test_single_empty_element() -> Result<()> {
     let tokens = quote! {
-        <foo></foo>
+        <foo>
+            "uwu   owo"
+        </foo>
     };
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
