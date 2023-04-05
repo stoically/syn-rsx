@@ -192,6 +192,7 @@ impl Parser {
         let (name, attributes, self_closing, mut span) = self.tag_open(fork)?;
 
         let mut children = vec![];
+        let mut closing_tag = None;
         if !self_closing {
             loop {
                 if !self.element_has_children(&name, fork)? {
@@ -201,8 +202,9 @@ impl Parser {
                 children.append(&mut self.node(fork)?);
             }
 
-            let (_, closing_span) = self.tag_close(fork)?;
+            let (closing, closing_span) = self.tag_close(fork)?;
             span = span.join(closing_span).unwrap_or(span);
+            closing_tag = Some(closing);
         };
 
         input.advance_to(fork);
@@ -211,6 +213,7 @@ impl Parser {
             attributes,
             children,
             span,
+            closing_tag
         }))
     }
 

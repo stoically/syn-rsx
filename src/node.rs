@@ -136,6 +136,8 @@ pub struct NodeElement {
     /// Note: This should cover the entire node in nightly, but is a "close
     /// enough" approximation in stable until [Span::join] is stabilized.
     pub span: Span,
+    /// Closing tag for the element, if it exists.
+    pub closing_tag: Option<NodeName>
 }
 
 impl fmt::Display for NodeElement {
