@@ -137,7 +137,7 @@ pub struct NodeElement {
     /// enough" approximation in stable until [Span::join] is stabilized.
     pub span: Span,
     /// Closing tag for the element, if it exists.
-    pub closing_tag: Option<NodeName>
+    pub closing_tag: Option<NodeName>,
 }
 
 impl fmt::Display for NodeElement {

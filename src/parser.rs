@@ -213,7 +213,7 @@ impl Parser {
             attributes,
             children,
             span,
-            closing_tag
+            closing_tag,
         }))
     }
 
