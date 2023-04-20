@@ -2,7 +2,7 @@
 
 use std::vec;
 
-use proc_macro2::{Punct, Span, TokenStream, TokenTree};
+use proc_macro2::{Punct, Span, TokenStream, TokenTree, Group};
 use syn::{
     braced,
     ext::IdentExt,
@@ -127,12 +127,12 @@ impl Parser {
                 Ok(transformed_tokens) => match transformed_tokens {
                     Some(tokens) => {
                         let parser =
-                            move |input: ParseStream| Ok(self.block_content_to_block(input));
+                            move |input: ParseStream| Ok(self.block_content_to_block(input, block_content.span()));
                         let transformed_content = parser.parse2(tokens)?;
                         block_content.advance_to(&forked_block_content);
                         transformed_content
                     }
-                    None => self.block_content_to_block(block_content),
+                    None => self.block_content_to_block(block_content, block_content.span()),
                 },
                 Err(error) => Err(error),
             }
@@ -151,19 +151,18 @@ impl Parser {
     }
 
     /// Parse the given stream and span as [`Expr::Block`].
-    fn block_content_to_block(&self, input: ParseStream) -> Result<Expr> {
-        // let _content;
-        // let brace = braced!(_content in input);
-        // Ok(ExprBlock {
-        //     attrs: vec![],
-        //     label: None,
-        //     block: Block {
-        //         brace_token: brace,
-        //         stmts: Block::parse_within(input)?,
-        //     },
-        // }
-        // .into())
-        input.parse()
+    fn block_content_to_block(&self, input: ParseStream, span: Span) -> Result<Expr> {
+        let mut delim_span = Group::new(proc_macro2::Delimiter::None, TokenStream::new());
+        delim_span.set_span(span);
+        Ok(ExprBlock {
+            attrs: vec![],
+            label: None,
+            block: Block {
+                brace_token: Brace { span: delim_span.delim_span() },
+                stmts: Block::parse_within(input)?,
+            },
+        }
+        .into())
     }
 
     /// Parse the given stream as [`Expr::Block`].
