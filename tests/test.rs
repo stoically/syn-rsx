@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use eyre::Result;
 use quote::quote;
-use syn::ExprBlock;
+use syn::{ExprBlock, Stmt};
 use syn_rsx::{
     parse2, parse2_with_config, Node, NodeAttribute, NodeElement, NodeType, ParserConfig,
 };
@@ -263,10 +263,15 @@ fn test_transform_block_some() -> Result<()> {
 
     assert_eq!(
         match block.value.as_ref() {
-            Expr::Lit(exp) => match &exp.lit {
-                Lit::Str(lit_str) => Some(lit_str.value()),
-                _ => None,
-            },
+            Expr::Block(expr) => {
+                match &expr.block.stmts[0] {
+                    Stmt::Expr(Expr::Lit(expr), _) => match &expr.lit {
+                        Lit::Str(lit_str) => Some(lit_str.value()),
+                        _ => None,
+                    },
+                    _ => None,
+                }
+            }
             _ => None,
         },
         Some("percent".to_owned())
