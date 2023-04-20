@@ -263,7 +263,7 @@ fn test_transform_block_some() -> Result<()> {
         match block.value.as_ref() {
             Expr::Block(expr) => {
                 match &expr.block.stmts[0] {
-                    Stmt::Expr(Expr::Lit(expr)) => match &expr.lit {
+                    Stmt::Expr(Expr::Lit(expr), None) => match &expr.lit {
                         Lit::Str(lit_str) => Some(lit_str.value()),
                         _ => None,
                     },
