@@ -2,14 +2,14 @@
 
 use std::vec;
 
-use proc_macro2::{Punct, Span, TokenStream, TokenTree};
+use proc_macro2::{Punct, Span, TokenStream, TokenTree, Group};
 use syn::{
     braced,
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
     spanned::Spanned,
-    token::{Brace, Colon, Colon2},
+    token::{Brace, Colon, PathSep},
     Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
@@ -126,9 +126,8 @@ impl Parser {
             match transform_fn(&forked_block_content) {
                 Ok(transformed_tokens) => match transformed_tokens {
                     Some(tokens) => {
-                        let parser = move |input: ParseStream| {
-                            Ok(self.block_content_to_block(input, block_content.span()))
-                        };
+                        let parser =
+                            move |input: ParseStream| Ok(self.block_content_to_block(input, block_content.span()));
                         let transformed_content = parser.parse2(tokens)?;
                         block_content.advance_to(&forked_block_content);
                         transformed_content
@@ -153,11 +152,13 @@ impl Parser {
 
     /// Parse the given stream and span as [`Expr::Block`].
     fn block_content_to_block(&self, input: ParseStream, span: Span) -> Result<Expr> {
+        let mut delim_span = Group::new(proc_macro2::Delimiter::None, TokenStream::new());
+        delim_span.set_span(span);
         Ok(ExprBlock {
             attrs: vec![],
             label: None,
             block: Block {
-                brace_token: Brace { span },
+                brace_token: Brace { span: delim_span.delim_span() },
                 stmts: Block::parse_within(input)?,
             },
         }
@@ -443,18 +444,20 @@ impl Parser {
 
     /// Parse the stream as [`NodeName`].
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {
-        if input.peek2(Colon2) {
-            self.node_name_punctuated_ident::<Colon2, fn(_) -> Colon2, PathSegment>(input, Colon2)
-                .map(|segments| {
-                    NodeName::Path(ExprPath {
-                        attrs: vec![],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments,
-                        },
-                    })
+        if input.peek2(PathSep) {
+            self.node_name_punctuated_ident::<PathSep, fn(_) -> PathSep, PathSegment>(
+                input, PathSep,
+            )
+            .map(|segments| {
+                NodeName::Path(ExprPath {
+                    attrs: vec![],
+                    qself: None,
+                    path: Path {
+                        leading_colon: None,
+                        segments,
+                    },
                 })
+            })
         } else if input.peek2(Colon) || input.peek2(Dash) {
             self.node_name_punctuated_ident_with_alternate::<Punct, fn(_) -> Colon, fn(_) -> Dash, Ident>(
                 input, Colon, Dash,

@@ -3,10 +3,9 @@
 use std::{convert::TryFrom, fmt, ops::Deref};
 
 use proc_macro2::{Punct, Span, TokenStream};
-use quote::ToTokens;
+use quote::{ToTokens, quote_spanned};
 use syn::{
     punctuated::{Pair, Punctuated},
-    spanned::Spanned,
     Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit,
 };
 
@@ -87,16 +86,16 @@ impl Node {
     }
 }
 
-impl Spanned for Node {
-    fn span(&self) -> Span {
+impl ToTokens for Node {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Node::Element(node) => node.span(),
-            Node::Attribute(node) => node.span(),
-            Node::Text(node) => node.span(),
-            Node::Comment(node) => node.span(),
-            Node::Doctype(node) => node.span(),
-            Node::Block(node) => node.span(),
-            Node::Fragment(node) => node.span(),
+            Node::Attribute(a) => a.to_tokens(tokens),
+            Node::Block(b) => b.to_tokens(tokens),
+            Node::Comment(c) => c.to_tokens(tokens),
+            Node::Doctype(d) => d.to_tokens(tokens),
+            Node::Fragment(f) => f.to_tokens(tokens),
+            Node::Element(e) => e.to_tokens(tokens),
+            Node::Text(t) => t.to_tokens(tokens),
         }
     }
 }
@@ -144,9 +143,21 @@ impl fmt::Display for NodeElement {
     }
 }
 
-impl Spanned for NodeElement {
-    fn span(&self) -> Span {
-        self.span
+impl ToTokens for NodeElement {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+
+        let name = &self.name;
+        let attributes = &self.attributes;
+        let children = &self.children;
+
+        // self closing
+        if children.is_empty() {
+            tokens.extend(quote_spanned!(self.span => 
+            <#name #(#attributes)* /> ))
+        } else {
+            tokens.extend(quote_spanned!(self.span => 
+            <#name #(#attributes)*> #(#children)* </#name> ))
+        }
     }
 }
 
@@ -172,9 +183,20 @@ impl fmt::Display for NodeAttribute {
     }
 }
 
-impl Spanned for NodeAttribute {
-    fn span(&self) -> Span {
-        self.span
+impl ToTokens for NodeAttribute {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+
+        let key = &self.key;
+        let value = &self.value;
+
+        // self closing
+        if let Some(value) = value{
+            tokens.extend(quote_spanned!(self.span => 
+            #key = #value ))
+        } else {
+            tokens.extend(quote_spanned!(self.span => 
+            #key ))
+        }
     }
 }
 
@@ -197,9 +219,9 @@ impl fmt::Display for NodeText {
     }
 }
 
-impl Spanned for NodeText {
-    fn span(&self) -> Span {
-        self.value.span()
+impl ToTokens for NodeText {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.value.to_tokens(tokens);
     }
 }
 
@@ -224,11 +246,13 @@ impl fmt::Display for NodeComment {
     }
 }
 
-impl Spanned for NodeComment {
-    fn span(&self) -> Span {
-        self.span
+impl ToTokens for NodeComment {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let value = &self.value;
+        tokens.extend(quote_spanned!(self.span=> <!-- #value -->))
     }
 }
+
 
 /// Doctype node.
 ///
@@ -251,9 +275,10 @@ impl fmt::Display for NodeDoctype {
     }
 }
 
-impl Spanned for NodeDoctype {
-    fn span(&self) -> Span {
-        self.span
+impl ToTokens for NodeDoctype {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let value = &self.value;
+        tokens.extend(quote_spanned!(self.span=> <! #value >))
     }
 }
 
@@ -277,9 +302,10 @@ impl fmt::Display for NodeFragment {
     }
 }
 
-impl Spanned for NodeFragment {
-    fn span(&self) -> Span {
-        self.span
+impl ToTokens for NodeFragment {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let childrens = &self.children;
+        tokens.extend(quote_spanned!(self.span => <> #(#childrens)* </>))
     }
 }
 
@@ -298,9 +324,9 @@ impl fmt::Display for NodeBlock {
     }
 }
 
-impl Spanned for NodeBlock {
-    fn span(&self) -> Span {
-        self.value.span()
+impl ToTokens for NodeBlock {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.value.to_tokens(tokens)
     }
 }
 
@@ -409,6 +435,13 @@ impl NodeValueExpr {
     /// Create a `NodeValueExpr`.
     pub fn new(expr: Expr) -> Self {
         Self { expr }
+    }
+}
+
+impl ToTokens for NodeValueExpr {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let obj = self.as_ref();
+        obj.to_tokens(tokens)
     }
 }
 
