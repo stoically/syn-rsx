@@ -259,8 +259,6 @@ fn test_transform_block_some() -> Result<()> {
     let nodes = parse2_with_config(tokens, config)?;
     let Node::Block(block) = get_element_child(&nodes, 0, 0) else { panic!("expected block") };
 
-    dbg!(block.value.as_ref());
-
     assert_eq!(
         match block.value.as_ref() {
             Expr::Block(expr) => {
