@@ -244,7 +244,7 @@ impl Parser {
 
     /// Parse the stream as opening or self-closing tag and extract its
     /// attributes.
-    fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool, Span)> {
+    fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<NodeAttribute>, bool, Span)> {
         let span_start = input.span();
         input.parse::<Token![<]>()?;
         let name = self.node_name(input)?;
@@ -300,51 +300,51 @@ impl Parser {
     }
 
     /// Parse the stream as vector of attributes.
-    fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
-        let mut nodes = vec![];
+    fn attributes(&self, input: ParseStream) -> Result<Vec<NodeAttribute>> {
+        let mut attributes = vec![];
 
         loop {
             if input.is_empty() {
                 break;
             }
 
-            nodes.push(self.attribute(input)?);
+            attributes.push(self.attribute(input)?);
         }
 
-        Ok(nodes)
+        Ok(attributes)
     }
 
     /// Parse the stream as [`Node::Attribute`].
-    fn attribute(&self, input: ParseStream) -> Result<Node> {
+    fn attribute(&self, input: ParseStream) -> Result<NodeAttribute> {
         let fork = &input.fork();
         if fork.peek(Brace) {
             let value = self.block_expr(fork)?.into();
             input.advance_to(fork);
 
-            Ok(Node::Block(NodeBlock { value }))
+            Ok(NodeAttribute::Block(DynAttribute { block: NodeBlock { value }}))
         } else {
-            let key = self.node_name(fork)?;
-            let eq = fork.parse::<Option<Token![=]>>()?;
+            let key = self.node_name(input)?;
+            let eq = input.parse::<Option<Token![=]>>()?;
             let value = if eq.is_some() {
-                if fork.is_empty() {
+                if input.is_empty() {
                     return Err(Error::new(key.span(), "missing attribute value"));
                 }
 
-                if fork.peek(Brace) {
-                    Some(NodeValueExpr::new(self.block_expr(fork)?))
+                if input.peek(Brace) {
+                    Some(NodeValueExpr::new(self.block_expr(input)?))
                 } else {
-                    Some(NodeValueExpr::new(fork.parse()?))
+                    Some(NodeValueExpr::new(input.parse()?))
                 }
             } else {
                 None
             };
-            input.advance_to(fork);
+            input.advance_to(input);
             let span = if let Some(ref val) = value {
                 key.span().join(val.span()).unwrap_or(key.span())
             } else {
                 key.span()
             };
-            Ok(Node::Attribute(NodeAttribute { key, value, span }))
+            Ok(NodeAttribute::Attribute(KeyedAttribute { key, value, span }))
         }
     }
 

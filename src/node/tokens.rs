@@ -6,7 +6,7 @@ use quote::{quote_spanned, ToTokens};
 
 use crate::{NodeValueExpr, NodeElement, NodeAttribute};
 
-use super::{Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText};
+use super::{Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText, attribute::{KeyedAttribute, DynAttribute}};
 
 
 impl ToTokens for NodeValueExpr {
@@ -34,7 +34,7 @@ impl ToTokens for NodeElement {
     }
 }
 
-impl ToTokens for NodeAttribute {
+impl ToTokens for KeyedAttribute {
     fn to_tokens(&self, tokens: &mut TokenStream) {
 
         let key = &self.key;
@@ -48,6 +48,22 @@ impl ToTokens for NodeAttribute {
             tokens.extend(quote_spanned!(self.span => 
             #key ))
         }
+    }
+}
+
+impl ToTokens for DynAttribute {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.block.to_tokens(tokens)
+    }
+}
+
+impl ToTokens for NodeAttribute {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            NodeAttribute::Attribute(a) => a.to_tokens(tokens),
+            NodeAttribute::Block(b) => b.to_tokens(tokens),
+        }
+       
     }
 }
 
@@ -88,7 +104,6 @@ impl ToTokens for NodeText {
 impl ToTokens for Node {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Node::Attribute(a) => a.to_tokens(tokens),
             Node::Block(b) => b.to_tokens(tokens),
             Node::Comment(c) => c.to_tokens(tokens),
             Node::Doctype(d) => d.to_tokens(tokens),
