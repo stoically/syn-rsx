@@ -87,24 +87,6 @@ impl Node {
     }
 }
 
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Element(_) => "Node::Element",
-                Self::Attribute(_) => "Node::Attribute",
-                Self::Text(_) => "Node::Text",
-                Self::Comment(_) => "Node::Comment",
-                Self::Doctype(_) => "Node::Doctype",
-                Self::Block(_) => "Node::Block",
-                Self::Fragment(_) => "Node::Fragment",
-            }
-        )
-    }
-}
-
 /// Element node.
 ///
 /// A HTMLElement tag, with optional children and attributes.
@@ -124,12 +106,6 @@ pub struct NodeElement {
     pub span: Span,
 }
 
-impl fmt::Display for NodeElement {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeElement")
-    }
-}
-
 /// Attribute node.
 ///
 /// Attributes of opening tags. Every attribute is itself a node.
@@ -146,12 +122,6 @@ pub struct NodeAttribute {
     pub span: Span,
 }
 
-impl fmt::Display for NodeAttribute {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeAttribute")
-    }
-}
-
 /// Text node.
 ///
 /// Quoted text. It's [planned to support unquoted text] as well
@@ -163,12 +133,6 @@ impl fmt::Display for NodeAttribute {
 pub struct NodeText {
     /// The text value.
     pub value: NodeValueExpr,
-}
-
-impl fmt::Display for NodeText {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeText")
-    }
 }
 
 /// Comment node.
@@ -185,13 +149,6 @@ pub struct NodeComment {
     /// enough" approximation in stable until [Span::join] is stabilized.
     pub span: Span,
 }
-
-impl fmt::Display for NodeComment {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeComment")
-    }
-}
-
 /// Doctype node.
 ///
 /// Doctype declaration: `<!DOCTYPE html>` (case insensitive), `html` is the
@@ -205,12 +162,6 @@ pub struct NodeDoctype {
     /// Note: This should cover the entire node in nightly, but is a "close
     /// enough" approximation in stable until [Span::join] is stabilized.
     pub span: Span,
-}
-
-impl fmt::Display for NodeDoctype {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeDoctype")
-    }
 }
 
 /// Fragement node.
@@ -227,12 +178,6 @@ pub struct NodeFragment {
     pub span: Span,
 }
 
-impl fmt::Display for NodeFragment {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeFragment")
-    }
-}
-
 /// Block node.
 ///
 /// Arbitrary rust code in braced `{}` blocks.
@@ -240,12 +185,6 @@ impl fmt::Display for NodeFragment {
 pub struct NodeBlock {
     /// The block value..
     pub value: NodeValueExpr,
-}
-
-impl fmt::Display for NodeBlock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeBlock")
-    }
 }
 
 fn path_to_string(expr: &ExprPath) -> String {
