@@ -5,10 +5,12 @@ use std::fmt;
 use proc_macro2::Span;
 use syn::ExprPath;
 
+mod attribute;
 mod node_name;
 mod node_value;
 mod tokens;
 
+pub use attribute::{DynAttribute, KeyedAttribute, NodeAttribute};
 pub use node_name::NodeName;
 pub use node_value::NodeValueExpr;
 
@@ -16,7 +18,6 @@ pub use node_value::NodeValueExpr;
 #[derive(Debug, PartialEq, Eq)]
 pub enum NodeType {
     Element,
-    Attribute,
     Text,
     Comment,
     Doctype,
@@ -31,7 +32,6 @@ impl fmt::Display for NodeType {
             "{}",
             match self {
                 Self::Element => "NodeType::Element",
-                Self::Attribute => "NodeType::Attribute",
                 Self::Text => "NodeType::Text",
                 Self::Comment => "NodeType::Comment",
                 Self::Doctype => "NodeType::Doctype",
@@ -46,7 +46,6 @@ impl fmt::Display for NodeType {
 #[derive(Debug)]
 pub enum Node {
     Element(NodeElement),
-    Attribute(NodeAttribute),
     Text(NodeText),
     Comment(NodeComment),
     Doctype(NodeDoctype),
@@ -59,7 +58,6 @@ impl Node {
     pub fn r#type(&self) -> NodeType {
         match &self {
             Self::Element(_) => NodeType::Element,
-            Self::Attribute(_) => NodeType::Attribute,
             Self::Text(_) => NodeType::Text,
             Self::Comment(_) => NodeType::Comment,
             Self::Doctype(_) => NodeType::Element,
@@ -96,26 +94,10 @@ pub struct NodeElement {
     /// Name of the element.
     pub name: NodeName,
     /// Attributes of the element node.
-    pub attributes: Vec<Node>,
+    pub attributes: Vec<NodeAttribute>,
     /// Children of the element node.
     pub children: Vec<Node>,
     /// Source span of the element for error reporting.
-    ///
-    /// Note: This should cover the entire node in nightly, but is a "close
-    /// enough" approximation in stable until [Span::join] is stabilized.
-    pub span: Span,
-}
-
-/// Attribute node.
-///
-/// Attributes of opening tags. Every attribute is itself a node.
-#[derive(Debug)]
-pub struct NodeAttribute {
-    /// Key of the element attribute.
-    pub key: NodeName,
-    /// Value of the element attribute.
-    pub value: Option<NodeValueExpr>,
-    /// Source span of the attribute for error reporting.
     ///
     /// Note: This should cover the entire node in nightly, but is a "close
     /// enough" approximation in stable until [Span::join] is stabilized.

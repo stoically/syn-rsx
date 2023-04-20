@@ -4,7 +4,8 @@ use eyre::Result;
 use quote::quote;
 use syn::ExprBlock;
 use syn_rsx::{
-    parse2, parse2_with_config, Node, NodeAttribute, NodeElement, NodeType, ParserConfig,
+    parse2, parse2_with_config, KeyedAttribute, Node, NodeAttribute, NodeElement, NodeType,
+    ParserConfig,
 };
 
 #[test]
@@ -59,7 +60,7 @@ fn test_reserved_keyword_attributes() -> Result<()> {
     };
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
-    let Some(Node::Attribute(attribute)) = element.attributes.get(0) else { panic!("expected attribute") };
+    let Some(NodeAttribute::Attribute(attribute)) = element.attributes.get(0) else { panic!("expected attribute") };
 
     assert_eq!(element.name.to_string(), "input");
     assert_eq!(attribute.key.to_string(), "type");
@@ -369,10 +370,10 @@ fn get_element_attribute(
     nodes: &[Node],
     element_index: usize,
     attribute_index: usize,
-) -> &NodeAttribute {
+) -> &KeyedAttribute {
     let Some(Node::Element(element)) =
         nodes.get(element_index) else { panic!("expected element") };
-    let Some(Node::Attribute(attribute)) =
+    let Some(NodeAttribute::Attribute(attribute)) =
         element.attributes.get(attribute_index) else { panic!("expected attribute") };
 
     attribute
