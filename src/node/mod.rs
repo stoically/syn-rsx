@@ -1,16 +1,16 @@
 //! Tree of nodes.
 
-use std::{convert::TryFrom, fmt, ops::Deref};
+use std::fmt;
 
-use proc_macro2::{Punct, Span, TokenStream};
-use quote::ToTokens;
-use syn::{
-    punctuated::{Pair, Punctuated},
-    spanned::Spanned,
-    Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit,
-};
+use proc_macro2::Span;
+use syn::{spanned::Spanned, ExprPath};
 
-use crate::Error;
+mod node_name;
+mod node_value;
+mod tokens;
+
+pub use node_name::NodeName;
+pub use node_value::NodeValueExpr;
 
 /// Node types.
 #[derive(Debug, PartialEq, Eq)]
@@ -83,20 +83,6 @@ impl Node {
             Self::Fragment(NodeFragment { children, .. })
             | Self::Element(NodeElement { children, .. }) => Some(children),
             _ => None,
-        }
-    }
-}
-
-impl Spanned for Node {
-    fn span(&self) -> Span {
-        match self {
-            Node::Element(node) => node.span(),
-            Node::Attribute(node) => node.span(),
-            Node::Text(node) => node.span(),
-            Node::Comment(node) => node.span(),
-            Node::Doctype(node) => node.span(),
-            Node::Block(node) => node.span(),
-            Node::Fragment(node) => node.span(),
         }
     }
 }
@@ -197,12 +183,6 @@ impl fmt::Display for NodeText {
     }
 }
 
-impl Spanned for NodeText {
-    fn span(&self) -> Span {
-        self.value.span()
-    }
-}
-
 /// Comment node.
 ///
 /// Comment: `<!-- "comment" -->`, currently has the same restrictions as
@@ -221,12 +201,6 @@ pub struct NodeComment {
 impl fmt::Display for NodeComment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeComment")
-    }
-}
-
-impl Spanned for NodeComment {
-    fn span(&self) -> Span {
-        self.span
     }
 }
 
@@ -277,12 +251,6 @@ impl fmt::Display for NodeFragment {
     }
 }
 
-impl Spanned for NodeFragment {
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 /// Block node.
 ///
 /// Arbitrary rust code in braced `{}` blocks.
@@ -295,212 +263,6 @@ pub struct NodeBlock {
 impl fmt::Display for NodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeBlock")
-    }
-}
-
-impl Spanned for NodeBlock {
-    fn span(&self) -> Span {
-        self.value.span()
-    }
-}
-
-/// Name of the node.
-#[derive(Debug)]
-pub enum NodeName {
-    /// A plain identifier like `div` is a path of length 1, e.g. `<div />`. Can
-    /// be separated by double colons, e.g. `<foo::bar />`.
-    Path(ExprPath),
-
-    /// Name separated by punctuation, e.g. `<div data-foo="bar" />` or `<div
-    /// data:foo="bar" />`.
-    Punctuated(Punctuated<Ident, Punct>),
-
-    /// Arbitrary rust code in braced `{}` blocks.
-    Block(Expr),
-}
-
-impl TryFrom<&NodeName> for ExprBlock {
-    type Error = Error;
-
-    fn try_from(node: &NodeName) -> Result<Self, Self::Error> {
-        match node {
-            NodeName::Block(Expr::Block(expr)) => Ok(expr.to_owned()),
-            _ => Err(Error::TryFrom(
-                "NodeName does not match NodeName::Block(Expr::Block(_))".into(),
-            )),
-        }
-    }
-}
-
-impl PartialEq for NodeName {
-    fn eq(&self, other: &NodeName) -> bool {
-        match self {
-            Self::Path(this) => match other {
-                Self::Path(other) => this == other,
-                _ => false,
-            },
-            // can't be derived automatically because `Punct` doesn't impl `PartialEq`
-            Self::Punctuated(this) => match other {
-                Self::Punctuated(other) => {
-                    this.pairs()
-                        .zip(other.pairs())
-                        .all(|(this, other)| match (this, other) {
-                            (
-                                Pair::Punctuated(this_ident, this_punct),
-                                Pair::Punctuated(other_ident, other_punct),
-                            ) => {
-                                this_ident == other_ident
-                                    && this_punct.as_char() == other_punct.as_char()
-                            }
-                            (Pair::End(this), Pair::End(other)) => this == other,
-                            _ => false,
-                        })
-                }
-                _ => false,
-            },
-            Self::Block(this) => match other {
-                Self::Block(other) => this == other,
-                _ => false,
-            },
-        }
-    }
-}
-
-impl ToTokens for NodeName {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            NodeName::Path(name) => name.to_tokens(tokens),
-            NodeName::Punctuated(name) => name.to_tokens(tokens),
-            NodeName::Block(name) => name.to_tokens(tokens),
-        }
-    }
-}
-
-impl fmt::Display for NodeName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                NodeName::Path(expr) => path_to_string(expr),
-                NodeName::Punctuated(name) => {
-                    name.pairs()
-                        .flat_map(|pair| match pair {
-                            Pair::Punctuated(ident, punct) => {
-                                [ident.to_string(), punct.to_string()]
-                            }
-                            Pair::End(ident) => [ident.to_string(), "".to_string()],
-                        })
-                        .collect::<String>()
-                }
-                NodeName::Block(_) => String::from("{}"),
-            }
-        )
-    }
-}
-
-/// Smart pointer to `syn::Expr`.
-#[derive(Debug)]
-pub struct NodeValueExpr {
-    expr: Expr,
-}
-
-impl NodeValueExpr {
-    /// Create a `NodeValueExpr`.
-    pub fn new(expr: Expr) -> Self {
-        Self { expr }
-    }
-}
-
-impl AsRef<Expr> for NodeValueExpr {
-    fn as_ref(&self) -> &Expr {
-        &self.expr
-    }
-}
-
-impl Deref for NodeValueExpr {
-    type Target = Expr;
-
-    fn deref(&self) -> &Self::Target {
-        &self.expr
-    }
-}
-
-impl From<Expr> for NodeValueExpr {
-    fn from(expr: Expr) -> Self {
-        Self { expr }
-    }
-}
-
-impl From<ExprLit> for NodeValueExpr {
-    fn from(expr: ExprLit) -> Self {
-        Self { expr: expr.into() }
-    }
-}
-
-impl From<ExprBlock> for NodeValueExpr {
-    fn from(expr: ExprBlock) -> Self {
-        Self { expr: expr.into() }
-    }
-}
-
-impl From<NodeValueExpr> for Expr {
-    fn from(value: NodeValueExpr) -> Self {
-        value.expr
-    }
-}
-
-impl<'a> From<&'a NodeValueExpr> for &'a Expr {
-    fn from(value: &'a NodeValueExpr) -> Self {
-        &value.expr
-    }
-}
-
-impl TryFrom<NodeValueExpr> for ExprBlock {
-    type Error = Error;
-
-    fn try_from(value: NodeValueExpr) -> Result<Self, Self::Error> {
-        if let Expr::Block(block) = value.expr {
-            Ok(block)
-        } else {
-            Err(Error::TryFrom(
-                "NodeValueExpr does not match Expr::Block(_)".into(),
-            ))
-        }
-    }
-}
-
-impl TryFrom<NodeValueExpr> for ExprLit {
-    type Error = Error;
-
-    fn try_from(value: NodeValueExpr) -> Result<Self, Self::Error> {
-        if let Expr::Lit(lit) = value.expr {
-            Ok(lit)
-        } else {
-            Err(Error::TryFrom(
-                "NodeValueExpr does not match Expr::Lit(_)".into(),
-            ))
-        }
-    }
-}
-
-impl TryFrom<&NodeValueExpr> for String {
-    type Error = Error;
-
-    fn try_from(value: &NodeValueExpr) -> Result<Self, Self::Error> {
-        match &value.expr {
-            Expr::Lit(expr) => match &expr.lit {
-                Lit::Str(lit_str) => Some(lit_str.value()),
-                _ => None,
-            },
-            Expr::Path(expr) => Some(path_to_string(&expr)),
-            _ => None,
-        }
-        .ok_or_else(|| {
-            Error::TryFrom(
-                "NodeValueExpr does not match Expr::Lit(Lit::Str(_)) or Expr::Path(_)".into(),
-            )
-        })
     }
 }
 
