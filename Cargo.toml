@@ -15,7 +15,7 @@ bench = false
 [dependencies]
 proc-macro2 = "1.0.47"
 quote = "1.0.21"
-syn = { version = "1.0.102", features = ["full", "parsing", "extra-traits"] }
+syn = { version = "2.0.15", features = ["full", "parsing", "extra-traits"] }
 thiserror = "1.0.37"
 
 [dev-dependencies]

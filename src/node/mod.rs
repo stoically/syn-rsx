@@ -3,7 +3,7 @@
 use std::fmt;
 
 use proc_macro2::Span;
-use syn::{spanned::Spanned, ExprPath};
+use syn::ExprPath;
 
 mod node_name;
 mod node_value;
@@ -130,12 +130,6 @@ impl fmt::Display for NodeElement {
     }
 }
 
-impl Spanned for NodeElement {
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 /// Attribute node.
 ///
 /// Attributes of opening tags. Every attribute is itself a node.
@@ -155,12 +149,6 @@ pub struct NodeAttribute {
 impl fmt::Display for NodeAttribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeAttribute")
-    }
-}
-
-impl Spanned for NodeAttribute {
-    fn span(&self) -> Span {
-        self.span
     }
 }
 
@@ -222,12 +210,6 @@ pub struct NodeDoctype {
 impl fmt::Display for NodeDoctype {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeDoctype")
-    }
-}
-
-impl Spanned for NodeDoctype {
-    fn span(&self) -> Span {
-        self.span
     }
 }
 
