@@ -6,7 +6,6 @@ use proc_macro2::{Punct, Span, TokenStream};
 use quote::ToTokens;
 use syn::{
     punctuated::{Pair, Punctuated},
-    spanned::Spanned,
     Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit,
 };
 
@@ -87,20 +86,6 @@ impl Node {
     }
 }
 
-impl Spanned for Node {
-    fn span(&self) -> Span {
-        match self {
-            Node::Element(node) => node.span(),
-            Node::Attribute(node) => node.span(),
-            Node::Text(node) => node.span(),
-            Node::Comment(node) => node.span(),
-            Node::Doctype(node) => node.span(),
-            Node::Block(node) => node.span(),
-            Node::Fragment(node) => node.span(),
-        }
-    }
-}
-
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -144,12 +129,6 @@ impl fmt::Display for NodeElement {
     }
 }
 
-impl Spanned for NodeElement {
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 /// Attribute node.
 ///
 /// Attributes of opening tags. Every attribute is itself a node.
@@ -172,12 +151,6 @@ impl fmt::Display for NodeAttribute {
     }
 }
 
-impl Spanned for NodeAttribute {
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 /// Text node.
 ///
 /// Quoted text. It's [planned to support unquoted text] as well
@@ -194,12 +167,6 @@ pub struct NodeText {
 impl fmt::Display for NodeText {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeText")
-    }
-}
-
-impl Spanned for NodeText {
-    fn span(&self) -> Span {
-        self.value.span()
     }
 }
 
@@ -224,12 +191,6 @@ impl fmt::Display for NodeComment {
     }
 }
 
-impl Spanned for NodeComment {
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 /// Doctype node.
 ///
 /// Doctype declaration: `<!DOCTYPE html>` (case insensitive), `html` is the
@@ -248,12 +209,6 @@ pub struct NodeDoctype {
 impl fmt::Display for NodeDoctype {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeDoctype")
-    }
-}
-
-impl Spanned for NodeDoctype {
-    fn span(&self) -> Span {
-        self.span
     }
 }
 
@@ -277,12 +232,6 @@ impl fmt::Display for NodeFragment {
     }
 }
 
-impl Spanned for NodeFragment {
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 /// Block node.
 ///
 /// Arbitrary rust code in braced `{}` blocks.
@@ -295,12 +244,6 @@ pub struct NodeBlock {
 impl fmt::Display for NodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeBlock")
-    }
-}
-
-impl Spanned for NodeBlock {
-    fn span(&self) -> Span {
-        self.value.span()
     }
 }
 

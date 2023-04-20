@@ -245,7 +245,7 @@ fn test_type_of_top_level_nodes() -> Result<()> {
 
 #[test]
 fn test_transform_block_some() -> Result<()> {
-    use syn::{Expr, Lit, Stmt, Token};
+    use syn::{Expr, Lit, Token};
 
     let tokens = quote! {
         <div>{%}</div>
@@ -259,17 +259,14 @@ fn test_transform_block_some() -> Result<()> {
     let nodes = parse2_with_config(tokens, config)?;
     let Node::Block(block) = get_element_child(&nodes, 0, 0) else { panic!("expected block") };
 
+    dbg!(block.value.as_ref());
+
     assert_eq!(
         match block.value.as_ref() {
-            Expr::Block(expr) => {
-                match &expr.block.stmts[0] {
-                    Stmt::Expr(Expr::Lit(expr)) => match &expr.lit {
-                        Lit::Str(lit_str) => Some(lit_str.value()),
-                        _ => None,
-                    },
-                    _ => None,
-                }
-            }
+            Expr::Lit(exp) => match &exp.lit {
+                Lit::Str(lit_str) => Some(lit_str.value()),
+                _ => None,
+            },
             _ => None,
         },
         Some("percent".to_owned())
