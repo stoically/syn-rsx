@@ -8,6 +8,18 @@
 
 [`syn`]-powered parser for JSX-like [`TokenStream`]s, aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
 
+The fork of original [syn-rsx](https://github.com/stoically/syn-rsx) repo.
+It was created because of various reasons:
+- The author of original `syn-rsx` retired, end left new features without attention https://github.com/stoically/syn-rsx/issues/49
+- Syn v2 was released and `syn-rsx` need to be mooved to new version.
+- The idea of [lossless parsing](https://github.com/stoically/syn-rsx/issues/53) was left unattended.
+- [Unquoted text](https://github.com/stoically/syn-rsx/issues/2) feature should advance.
+
+
+In current phase, unquoted text is still in development, also during implemementation of
+lossless parsing - tree flattening and block transformation features was temporary removed.
+
+
 ```rust
 use std::convert::TryFrom;
 

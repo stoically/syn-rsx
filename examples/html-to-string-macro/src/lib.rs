@@ -17,10 +17,10 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> (String, Vec<&'a Expr>) {
                 out.push_str(&format!("<!DOCTYPE {}>", value));
             }
             Node::Element(element) => {
-                let name = element.name.to_string();
+                let name = element.name().to_string();
                 out.push_str(&format!("<{}", name));
 
-                for attribute in &element.attributes {
+                for attribute in element.attributes() {
                     match attribute {
                         NodeAttribute::Block(DynAttribute { block }) => {
                             // If the nodes parent is an attribute we prefix with whitespace
