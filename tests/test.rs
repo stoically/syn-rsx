@@ -16,7 +16,7 @@ fn test_single_empty_element() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert_eq!(element.name.to_string(), "foo");
+    assert_eq!(element.name().to_string(), "foo");
 
     Ok(())
 }
@@ -60,9 +60,9 @@ fn test_reserved_keyword_attributes() -> Result<()> {
     };
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
-    let Some(NodeAttribute::Attribute(attribute)) = element.attributes.get(0) else { panic!("expected attribute") };
+    let Some(NodeAttribute::Attribute(attribute)) = element.attributes().get(0) else { panic!("expected attribute") };
 
-    assert_eq!(element.name.to_string(), "input");
+    assert_eq!(element.name().to_string(), "input");
     assert_eq!(attribute.key.to_string(), "type");
 
     Ok(())
@@ -110,7 +110,7 @@ fn test_path_as_tag_name() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert_eq!(element.name.to_string(), "some::path");
+    assert_eq!(element.name().to_string(), "some::path");
 
     Ok(())
 }
@@ -124,7 +124,7 @@ fn test_block_as_tag_name() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert!(ExprBlock::try_from(&element.name).is_ok());
+    assert!(ExprBlock::try_from(element.name()).is_ok());
 
     Ok(())
 }
@@ -138,7 +138,7 @@ fn test_block_as_tag_name_with_closing_tag() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert!(ExprBlock::try_from(&element.name).is_ok());
+    assert!(ExprBlock::try_from(element.name()).is_ok());
 
     Ok(())
 }
@@ -194,7 +194,7 @@ fn test_block_as_attribute() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert_eq!(element.attributes.len(), 1);
+    assert_eq!(element.attributes().len(), 1);
 
     Ok(())
 }
@@ -374,7 +374,7 @@ fn get_element_attribute(
     let Some(Node::Element(element)) =
         nodes.get(element_index) else { panic!("expected element") };
     let Some(NodeAttribute::Attribute(attribute)) =
-        element.attributes.get(attribute_index) else { panic!("expected attribute") };
+        element.attributes().get(attribute_index) else { panic!("expected attribute") };
 
     attribute
 }

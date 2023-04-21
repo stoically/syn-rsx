@@ -2,9 +2,10 @@
 
 use std::fmt;
 
-use proc_macro2::Span;
-use syn::ExprPath;
+use proc_macro2::Ident;
+use syn::{ExprPath, Token};
 
+mod atoms;
 mod attribute;
 mod node_name;
 mod node_value;
@@ -12,7 +13,9 @@ mod tokens;
 
 pub use attribute::{DynAttribute, KeyedAttribute, NodeAttribute};
 pub use node_name::NodeName;
-pub use node_value::NodeValueExpr;
+pub use node_value::{NodeBlock, NodeValueExpr};
+
+pub use self::atoms::*;
 
 /// Node types.
 #[derive(Debug, PartialEq, Eq)]
@@ -91,17 +94,18 @@ impl Node {
 /// Potentially selfclosing. Any tag name is valid.
 #[derive(Debug)]
 pub struct NodeElement {
-    /// Name of the element.
-    pub name: NodeName,
-    /// Attributes of the element node.
-    pub attributes: Vec<NodeAttribute>,
-    /// Children of the element node.
+    pub open_tag: atoms::OpenTag,
     pub children: Vec<Node>,
-    /// Source span of the element for error reporting.
-    ///
-    /// Note: This should cover the entire node in nightly, but is a "close
-    /// enough" approximation in stable until [Span::join] is stabilized.
-    pub span: Span,
+    pub close_tag: Option<atoms::CloseTag>,
+}
+
+impl NodeElement {
+    pub fn name(&self) -> &NodeName {
+        &self.open_tag.name
+    }
+    pub fn attributes(&self) -> &[NodeAttribute] {
+        &self.open_tag.attributes
+    }
 }
 
 /// Text node.
@@ -123,13 +127,10 @@ pub struct NodeText {
 /// `Text` (comment needs to be quoted).
 #[derive(Debug)]
 pub struct NodeComment {
+    pub token_start: token::ComStart,
     /// The comment value.
     pub value: NodeValueExpr,
-    /// Source span of the comment for error reporting.
-    ///
-    /// Note: This should cover the entire node in nightly, but is a "close
-    /// enough" approximation in stable until [Span::join] is stabilized.
-    pub span: Span,
+    pub token_end: token::ComEnd,
 }
 /// Doctype node.
 ///
@@ -137,13 +138,12 @@ pub struct NodeComment {
 /// node value in this case.
 #[derive(Debug)]
 pub struct NodeDoctype {
+    pub token_start: token::DocStart,
+    /// "doctype"
+    pub token_doctype: Ident,
     /// The doctype value.
     pub value: NodeValueExpr,
-    /// Source span of the doctype node for error reporting.
-    ///
-    /// Note: This should cover the entire node in nightly, but is a "close
-    /// enough" approximation in stable until [Span::join] is stabilized.
-    pub span: Span,
+    pub token_end: Token![>],
 }
 
 /// Fragement node.
@@ -151,22 +151,12 @@ pub struct NodeDoctype {
 /// Fragment: `<></>`
 #[derive(Debug)]
 pub struct NodeFragment {
+    /// Open fragment token
+    pub tag_open: FragmentOpen,
     /// Children of the fragment node.
     pub children: Vec<Node>,
-    /// Source span of the fragment for error reporting.
-    ///
-    /// Note: This should cover the entire node in nightly, but is a "close
-    /// enough" approximation in stable until [Span::join] is stabilized.
-    pub span: Span,
-}
-
-/// Block node.
-///
-/// Arbitrary rust code in braced `{}` blocks.
-#[derive(Debug)]
-pub struct NodeBlock {
-    /// The block value..
-    pub value: NodeValueExpr,
+    /// Close fragment token
+    pub tag_close: FragmentClose,
 }
 
 fn path_to_string(expr: &ExprPath) -> String {

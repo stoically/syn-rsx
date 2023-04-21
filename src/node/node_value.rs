@@ -111,3 +111,18 @@ impl TryFrom<&NodeValueExpr> for String {
         })
     }
 }
+
+/// Block node.
+///
+/// Arbitrary rust code in braced `{}` blocks.
+#[derive(Debug)]
+pub struct NodeBlock {
+    /// The block value..
+    pub value: NodeValueExpr,
+}
+
+impl From<NodeBlock> for NodeValueExpr {
+    fn from(v: NodeBlock) -> NodeValueExpr {
+        v.value
+    }
+}
