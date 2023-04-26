@@ -57,6 +57,18 @@ pub enum Node {
 }
 
 impl Node {
+    pub fn flatten(mut self) -> Vec<Self> {
+        let children = self
+            .children_mut()
+            .map(|children| children.drain(..))
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        
+        std::iter::once(self)
+            .chain(children.into_iter().map(Self::flatten).flatten())
+            .collect()
+    }
     /// Get the type of the node.
     pub fn r#type(&self) -> NodeType {
         match &self {

@@ -51,6 +51,12 @@ impl Parser {
             }
         }
 
+        let nodes = if self.config.flat_tree {
+            nodes.into_iter().map(Node::flatten).flatten().collect()
+        } else {
+            nodes
+        };
+
         Ok(nodes)
     }
 

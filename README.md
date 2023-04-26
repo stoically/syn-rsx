@@ -17,7 +17,7 @@ It was created because of various reasons:
 
 
 In current phase, unquoted text is still in development, also during implemementation of
-lossless parsing - tree flattening and block transformation features was temporary removed.
+lossless parsing - block transformation features was temporary removed.
 
 
 ```rust
