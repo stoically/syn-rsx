@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::Expr;
-use syn_rsx::{parse, DynAttribute, Node, NodeAttribute};
+use syn_rsx::{parse_with_config, DynAttribute, Node, NodeAttribute, ParserConfig};
 
 fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> (String, Vec<&'a Expr>) {
     let mut out = String::new();
@@ -94,12 +94,14 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> (String, Vec<&'a Expr>) {
 /// ```
 #[proc_macro]
 pub fn html(tokens: TokenStream) -> TokenStream {
-    match parse(tokens) {
+    let config = ParserConfig::new().emit_errors(syn_rsx::EmitError::All);
+    let token_stream: TokenStream = match parse_with_config(tokens, config) {
         Ok(nodes) => {
             let (html_string, values) = walk_nodes(&nodes);
             quote! { format!(#html_string, #(#values),*) }
         }
         Err(error) => error.to_compile_error(),
     }
-    .into()
+    .into();
+    syn_rsx::try_emit_errors(token_stream.into()).into()
 }

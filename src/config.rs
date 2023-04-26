@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use proc_macro2::TokenStream;
 use syn::{parse::ParseStream, Result};
 
@@ -6,12 +8,29 @@ use crate::NodeType;
 pub type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
 
 /// Configures the `Parser` behavior
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ParserConfig {
     pub(crate) flat_tree: bool,
     pub(crate) number_of_top_level_nodes: Option<usize>,
     pub(crate) type_of_top_level_nodes: Option<NodeType>,
-    pub(crate) transform_block: Option<Box<TransformBlockFn>>,
+    pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
+    pub(crate) emit_errors: EmitError,
+}
+
+/// How parsing error should be emitted.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum EmitError {
+    /// Whenever first error is received.
+    First,
+    /// Try to recover after invalid parsing.
+    /// The end user of library should then process them.
+    All,
+}
+
+impl Default for EmitError {
+    fn default() -> Self {
+        EmitError::First
+    }
 }
 
 impl ParserConfig {
@@ -38,6 +57,11 @@ impl ParserConfig {
         self
     }
 
+    /// Change behaviour of emitting errors
+    pub fn emit_errors(mut self, emit_errors: EmitError) -> Self {
+        self.emit_errors = emit_errors;
+        self
+    }
     /// Transforms the `value` of all `NodeType::Block`s with the given closure
     /// callback. The provided `ParseStream` is the content of the block.
     ///
@@ -73,7 +97,7 @@ impl ParserConfig {
     where
         F: Fn(ParseStream) -> Result<Option<TokenStream>> + 'static,
     {
-        self.transform_block = Some(Box::new(callback));
+        self.transform_block = Some(Rc::new(callback));
         self
     }
 }

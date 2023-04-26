@@ -169,9 +169,11 @@ use syn::{
 };
 
 mod config;
+mod context;
 mod error;
 mod node;
 mod parser;
+pub use context::try_emit_errors;
 
 pub mod punctuation {
     //! Custom syn punctuations
@@ -180,7 +182,7 @@ pub mod punctuation {
     custom_punctuation!(Dash, -);
 }
 
-pub use config::ParserConfig;
+pub use config::{EmitError, ParserConfig};
 pub use error::Error;
 pub use node::*;
 pub use parser::Parser;
