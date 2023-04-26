@@ -195,18 +195,23 @@ impl Parse for OpenTag {
 impl Parse for NodeElement {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let open_tag = OpenTag::parse(input)?;
-        let (children, close_tag) = if !open_tag.is_self_closed() {
-            let (children, close_tag) = parse_tokens_until::<Node, _, _> (input, CloseTag::parse)?;
-            (children, Some(close_tag))
+        let (children, close_tag_token) = if !open_tag.is_self_closed() {
+            let (children, close_tag_token) = parse_tokens_until::<Node, _, _> (input, token::CloseTagStart::parse)?;
+            (children, Some(close_tag_token))
         } else {
             (vec![], None)
         };
+        let close_tag = close_tag_token.map(|t|CloseTag::parse_with_start_tag(input, t)).transpose()?;
        
+        if let Some(close_tag) = &close_tag {
+            if close_tag.name != open_tag.name {
+                return Err(Error::new(close_tag.span(), "close tag has no coresponding open tag"));
+            }
+        }
         Ok(NodeElement {
             open_tag,
             children,
             close_tag
-
         })
     }
 }

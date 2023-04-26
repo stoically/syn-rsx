@@ -52,6 +52,15 @@ pub mod token {
         pub token_solidus: Option<Token![/]>,
         pub token_gt: Token![>],
     }
+
+    /// Start part of element's close tag.
+    /// Its commonly used as separator
+    /// `</`
+    #[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
+    pub struct CloseTagStart {
+        pub token_lt: Token![<],
+        pub token_solidus: Token![/],
+    }
 }
 
 /// Fragment open part
@@ -91,8 +100,20 @@ impl OpenTag {
 /// Open tag for element, <name attr=x, attr_flag>
 #[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct CloseTag {
-    pub token_lt: Token![<],
-    pub token_solidus: Token![/],
+    pub start_tag: token::CloseTagStart,
     pub name: NodeName,
     pub token_gt: Token![>],
+}
+
+impl CloseTag {
+    pub fn parse_with_start_tag(
+        input: syn::parse::ParseStream,
+        start_tag: token::CloseTagStart,
+    ) -> syn::Result<Self> {
+        Ok(Self {
+            start_tag,
+            name: input.parse()?,
+            token_gt: input.parse()?,
+        })
+    }
 }
