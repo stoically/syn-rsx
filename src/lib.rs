@@ -18,11 +18,11 @@
 //!
 //! // Extract some specific nodes from the tree.
 //! let Node::Element(element) = &nodes[0] else { bail!("element") };
-//! let NodeAttribute::Attribute(attribute) = &element.attributes[0] else { bail!("attribute") };
+//! let NodeAttribute::Attribute(attribute) = &element.attributes()[0] else { bail!("attribute") };
 //! let Node::Text(text) = &element.children[0] else { bail!("text") };
 //!
 //! // Work with the nodes.
-//! assert_eq!(element.name.to_string(), "hello");
+//! assert_eq!(element.name().to_string(), "hello");
 //! assert_eq!(attribute.key.to_string(), "world");
 //! assert_eq!(String::try_from(&text.value)?, "hi");
 //! # Ok(())
@@ -174,6 +174,7 @@ mod error;
 mod node;
 mod parser;
 pub use context::try_emit_errors;
+pub use node::tokens::parse_tokens_until;
 
 pub mod punctuation {
     //! Custom syn punctuations

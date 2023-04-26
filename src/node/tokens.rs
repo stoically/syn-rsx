@@ -1,7 +1,7 @@
 //!
 //! Implementation of ToTokens and Spanned for node related structs
 
-use proc_macro2::{Punct, TokenStream, TokenTree};
+use proc_macro2::{extra::DelimSpan, Delimiter, Punct, TokenStream, TokenTree};
 use quote::{quote_spanned, ToTokens};
 use syn::{
     braced,
@@ -22,7 +22,9 @@ use super::{
     Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText,
 };
 use crate::{
-    config::EmitError, punctuation::Dash, NodeAttribute, NodeElement, NodeValueExpr, Parser,
+    config::{EmitError, TransformBlockFn},
+    punctuation::Dash,
+    NodeAttribute, NodeElement, NodeValueExpr, Parser,
 };
 
 impl ToTokens for KeyedAttribute {
@@ -98,8 +100,14 @@ impl Parse for NodeName {
 
 impl Parse for NodeBlock {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let transform_block = crate::context::with_config(|c| c.transform_block.clone());
+        let value = if let Some(transform_fn) = transform_block {
+            block_transform(input, &*transform_fn)?
+        } else {
+            block_expr(input)?
+        };
         Ok(NodeBlock {
-            value: block_expr(input)?.into(),
+            value: value.into(),
         })
     }
 }
@@ -273,58 +281,35 @@ impl Parse for Node {
     }
 }
 
-// impl Node {
-//     pub fn parse_many(input: ParseStream) -> syn::Result<Vec<Self>> {
-//         // emulate try block with closure
-//         let parse_node = || -> syn::Result<Node> {
-//             Node::parse(input)
-//         };
-
-//         let mut node = match parse_node() {
-//             Err(e) => {
-
-//                 return Err(e)
-//             }
-//             Ok(v) => v
-//         };
-
-//         if crate::context::with_config(|c|c.flat_tree) {
-//             let mut children = node
-//                 .children_mut()
-//                 .map(|children| children.drain(..))
-//                 .into_iter()
-//                 .flatten()
-//                 .collect::<Vec<_>>();
-
-//             let mut nodes = vec![node];
-//             nodes.append(&mut children);
-//             Ok(nodes)
-//         } else {
-//             Ok(vec![node])
-//         }
-//     }
-// }
-
 /// Parse array of toknes that is seperated by spaces(tabs, or new lines).
 /// Stop parsing array when other branch could parse anything.
 ///
 /// Example:
 /// ```
-/// let tokens = quote::quote!(few idents seperated by spaces and then minus sign - that will stop parsing);
-/// let concat_idents_without_minus = |input: ParseStream| -> syn::Result<String> {
-///     let (idents, _minus) = parse_tokens_until<syn::Ident, _,_ >(input, |i|
-///         i.parse::<Token![-]()
-///     );
+/// # use syn::{parse::{Parser, ParseStream}, Ident, Result, parse_macro_input, Token};
+/// # use syn_rsx::{parse_tokens_until};
+/// # fn main() -> syn::Result<()>{
+/// let tokens:proc_macro2::TokenStream = quote::quote!(few idents seperated by spaces and then minus sign - that will stop parsing).into();
+/// let concat_idents_without_minus = |input: ParseStream| -> Result<String> {
+///     let (idents, _minus) = parse_tokens_until::<Ident, _, _>(input, |i|
+///         i.parse::<Token![-]>()
+///     )?;
 ///     let mut new_str = String::new();
 ///     for ident in idents {
 ///         new_str.push_str(&ident.to_string())
 ///     }
+///     // .. skip rest idents in input
+/// #    while !input.is_empty() {
+/// #        input.parse::<Ident>()?;
+/// #    }
 ///     Ok(new_str)
-/// }
-/// let concated = syn::parse_macro_input!(tokens in concat_idents);
-/// assert_eq!(concated, "fewidentsseperatedbyspacesandthenminussign")
+/// };
+/// let concated = concat_idents_without_minus.parse2(tokens)?;
+/// assert_eq!(concated, "fewidentsseperatedbyspacesandthenminussign");
+/// # Ok(())
+/// # }
 /// ```
-fn parse_tokens_until<T, F, U>(input: ParseStream, stop: F) -> syn::Result<(Vec<T>, U)>
+pub fn parse_tokens_until<T, F, U>(input: ParseStream, stop: F) -> syn::Result<(Vec<T>, U)>
 where
     T: Parse + std::fmt::Debug,
     F: Fn(ParseStream) -> syn::Result<U>,
@@ -350,13 +335,13 @@ where
 ///
 ///
 /// Example:
-/// ```
+/// ```no_build
 /// let tokens = quote!(some_expr_seperated + with - lt_gt * tokens <> other part);
 /// ```
 /// In this example "<" can can be parsed as part of expression, but we want to
 /// split tokens after "<>" was found. So instead of parsing all input as
 /// expression, firstly we need to seperate it into two chunks.
-fn parse_tokens_with_separator<T, F, U>(
+pub fn parse_tokens_with_separator<T, F, U>(
     input: ParseStream,
     separator: F,
 ) -> syn::Result<(Vec<T>, U)>
@@ -409,6 +394,50 @@ where
     input.append_all(iter)
 }
 
+/// Replace the next [`TokenTree::Group`] in the given parse stream with a
+/// token stream returned by a user callback, or parse as original block if
+/// no token stream is returned.
+fn block_transform(input: ParseStream, transform_fn: &TransformBlockFn) -> syn::Result<ExprBlock> {
+    input.step(|cursor| {
+        let (block_group, block_span, next) = cursor
+            .group(Delimiter::Brace)
+            .ok_or_else(|| cursor.error("unexpected: no Group found"))?;
+        let parser = move |block_content: ParseStream| {
+            let forked_block_content = block_content.fork();
+
+            match transform_fn(&forked_block_content) {
+                Ok(transformed_tokens) => match transformed_tokens {
+                    Some(tokens) => {
+                        let parser = move |input: ParseStream| {
+                            Ok(block_expr_with_extern_span(input, block_span))
+                        };
+                        let transformed_content = parser.parse2(tokens)?;
+                        block_content.advance_to(&forked_block_content);
+                        transformed_content
+                    }
+                    None => block_expr_with_extern_span(block_content, block_span),
+                },
+                Err(error) => Err(error),
+            }
+        };
+
+        Ok((parser.parse2(block_group.token_stream())?, next))
+    })
+}
+
+/// Parse the given stream and span as [`Expr::Block`].
+fn block_expr_with_extern_span(input: ParseStream, span: DelimSpan) -> syn::Result<ExprBlock> {
+    Ok(ExprBlock {
+        attrs: vec![],
+        label: None,
+        block: Block {
+            brace_token: Brace { span },
+            stmts: Block::parse_within(input)?,
+        },
+    })
+}
+
+/// Parse the given stream as [`Expr::Block`].
 fn block_expr(input: syn::parse::ParseStream) -> syn::Result<ExprBlock> {
     let content;
     let brace_token = braced!(content in input);

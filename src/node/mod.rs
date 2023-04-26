@@ -64,7 +64,7 @@ impl Node {
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
-        
+
         std::iter::once(self)
             .chain(children.into_iter().map(Self::flatten).flatten())
             .collect()

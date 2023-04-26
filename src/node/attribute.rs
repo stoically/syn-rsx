@@ -23,7 +23,7 @@ pub struct KeyedAttribute {
 }
 
 ///
-/// Element attribute that is computed fron rust code.
+/// Element attribute that is computed from rust code block.
 ///
 /// Example:
 /// {"some-fixed-key"} // attribute without value that is computed from string
