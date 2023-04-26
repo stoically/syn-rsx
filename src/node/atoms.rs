@@ -9,14 +9,16 @@
 
 use syn::Token;
 
-use crate::{NodeAttribute, NodeName};
+use crate::{node::tokens, NodeAttribute, NodeName};
 
 pub mod token {
     use syn::Token;
 
+    use crate::node::tokens;
+
     /// Start part of doctype tag
     /// `<!`
-    #[derive(Debug)]
+    #[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
     pub struct DocStart {
         pub token_lt: Token![<],
         pub token_not: Token![!],
@@ -24,24 +26,28 @@ pub mod token {
 
     /// Start part of comment tag
     /// `<!--`
-    #[derive(Debug)]
+    #[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
     pub struct ComStart {
         pub token_lt: Token![<],
         pub token_not: Token![!],
+        #[parse(tokens::parse_array_of2_tokens)]
+        #[to_tokens(tokens::to_tokens_array)]
         pub token_minus: [Token![-]; 2],
     }
 
     /// End part of comment tag
     /// `-->`
-    #[derive(Debug)]
+    #[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
     pub struct ComEnd {
+        #[parse(tokens::parse_array_of2_tokens)]
+        #[to_tokens(tokens::to_tokens_array)]
         pub token_minus: [Token![-]; 2],
         pub token_gt: Token![>],
     }
 
     /// End part of element's open tag
     /// `/>`
-    #[derive(Debug)]
+    #[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
     pub struct OpenTagEnd {
         pub token_solidus: Option<Token![/]>,
         pub token_gt: Token![>],
@@ -50,7 +56,7 @@ pub mod token {
 
 /// Fragment open part
 /// `<>`
-#[derive(Debug)]
+#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct FragmentOpen {
     pub token_lt: Token![<],
     pub token_gt: Token![>],
@@ -58,7 +64,7 @@ pub struct FragmentOpen {
 
 /// Fragment close part
 /// `</>`
-#[derive(Debug)]
+#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct FragmentClose {
     pub token_lt: Token![<],
     pub token_sol: Token![/],
@@ -67,10 +73,11 @@ pub struct FragmentClose {
 
 /// Open tag for element, possibly self-closed.
 /// <name attr=x, attr_flag>
-#[derive(Debug)]
+#[derive(Debug, syn_derive::ToTokens)]
 pub struct OpenTag {
     pub token_lt: Token![<],
     pub name: NodeName,
+    #[to_tokens(tokens::to_tokens_array)]
     pub attributes: Vec<NodeAttribute>,
     pub end_tag: token::OpenTagEnd,
 }
@@ -82,7 +89,7 @@ impl OpenTag {
 }
 
 /// Open tag for element, <name attr=x, attr_flag>
-#[derive(Debug)]
+#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct CloseTag {
     pub token_lt: Token![<],
     pub token_solidus: Token![/],

@@ -1,4 +1,5 @@
 use proc_macro2::Span;
+use syn::token::Brace;
 
 use crate::{NodeBlock, NodeName, NodeValueExpr};
 
@@ -6,8 +7,8 @@ use crate::{NodeBlock, NodeName, NodeValueExpr};
 /// Element attribute with fixed key.
 ///
 /// Example:
-/// "key=value" // attribute with ident as value
-/// "key" // attribute without value
+/// key=value // attribute with ident as value
+/// key // attribute without value
 #[derive(Debug)]
 pub struct KeyedAttribute {
     /// Key of the element attribute.
@@ -22,11 +23,11 @@ pub struct KeyedAttribute {
 }
 
 ///
-/// Element attribute with that is computed fron rust code.
+/// Element attribute that is computed fron rust code.
 ///
 /// Example:
 /// {"some-fixed-key"} // attribute without value that is computed from string
-#[derive(Debug)]
+#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct DynAttribute {
     pub block: NodeBlock,
 }
@@ -34,8 +35,9 @@ pub struct DynAttribute {
 /// Sum type for Dyn and Keyed attributes.
 ///
 /// Attributes is stored in opening tags.
-#[derive(Debug)]
+#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub enum NodeAttribute {
-    Attribute(KeyedAttribute),
+    #[parse(peek = Brace)]
     Block(DynAttribute),
+    Attribute(KeyedAttribute),
 }
