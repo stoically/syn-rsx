@@ -9,7 +9,7 @@ use syn::{
     Ident, Result,
 };
 
-use crate::{node::*, ParserConfig};
+use crate::{config::EmitError, node::*, ParserConfig};
 
 /// RSX Parser
 pub struct Parser {
@@ -26,6 +26,8 @@ impl Parser {
     pub fn parse(&self, input: ParseStream) -> Result<Vec<Node>> {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
+
+        let _context = crate::context::Context::new_from_config(self.config.clone());
         while !input.cursor().eof() {
             let parsed_node = input.parse::<Node>()?;
 
@@ -51,6 +53,10 @@ impl Parser {
             }
         }
 
+        match self.config.emit_errors {
+            EmitError::All => {}
+            EmitError::First => crate::context::get_first_error()?,
+        }
         Ok(nodes)
     }
 

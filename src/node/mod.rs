@@ -18,7 +18,7 @@ pub use node_value::{NodeBlock, NodeValueExpr};
 pub use self::atoms::*;
 
 /// Node types.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NodeType {
     Element,
     Text,

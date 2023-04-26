@@ -18,6 +18,7 @@ It was created because of various reasons:
 
 In current phase, unquoted text is still in development, also during implemementation of
 lossless parsing - tree flattening and block transformation features was temporary removed.
+Currently this fork is focused on giving more ergonomics, especially in error handling.
 
 
 ```rust
