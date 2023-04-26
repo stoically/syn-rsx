@@ -15,9 +15,9 @@ fn test() {
                     <div hello={world} />
                     <>
                         <div>"1"</div>
-                        <div>"2"</div>
+                        <div>"2"</b>
                         <div>"3"</div>
-                        // <div {"some-attribute-from-rust-block"}/>
+                        <div {"some-attribute-from-rust-block"}/>
                     </>
                 </body>
             </html>
