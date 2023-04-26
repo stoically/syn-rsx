@@ -10,7 +10,7 @@ use super::path_to_string;
 use crate::Error;
 
 /// Name of the node.
-#[derive(Debug)]
+#[derive(Debug, syn_derive::ToTokens)]
 pub enum NodeName {
     /// A plain identifier like `div` is a path of length 1, e.g. `<div />`. Can
     /// be separated by double colons, e.g. `<foo::bar />`.

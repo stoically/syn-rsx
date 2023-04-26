@@ -7,26 +7,8 @@ use syn::{parse::{Parse, discouraged::Speculative, ParseStream, Parser as _}, Id
 
 use crate::{NodeValueExpr, NodeElement, NodeAttribute, Parser, punctuation::Dash};
 
-use super::{Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText, attribute::{KeyedAttribute, DynAttribute}, atoms::{FragmentOpen, FragmentClose, token::{self, DocStart, ComStart, ComEnd}, OpenTag, CloseTag}};
+use super::{Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText, attribute::{KeyedAttribute}, atoms::{FragmentOpen, FragmentClose, token::{self, DocStart, ComStart, ComEnd}, OpenTag, CloseTag}};
 
-impl ToTokens for NodeValueExpr {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let obj = self.as_ref();
-        obj.to_tokens(tokens)
-    }
-}
-
-impl ToTokens for NodeElement {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.open_tag.to_tokens(tokens);
-        for child in &self.children {
-            child.to_tokens(tokens)
-        }
-        if let Some(close_tag) = &self.close_tag{
-            close_tag.to_tokens(tokens)
-        }
-    }
-}
 
 impl ToTokens for KeyedAttribute {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -44,167 +26,6 @@ impl ToTokens for KeyedAttribute {
         }
     }
 }
-
-impl ToTokens for DynAttribute {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.block.to_tokens(tokens)
-    }
-}
-
-impl ToTokens for NodeAttribute {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            NodeAttribute::Attribute(a) => a.to_tokens(tokens),
-            NodeAttribute::Block(b) => b.to_tokens(tokens),
-        }
-       
-    }
-}
-
-impl ToTokens for NodeBlock {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.value.to_tokens(tokens)
-    }
-}
-
-impl ToTokens for NodeComment {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_start.to_tokens(tokens);
-        self.value.to_tokens(tokens);
-        self.token_end.to_tokens(tokens);
-        
-    }
-}
-
-impl ToTokens for token::DocStart {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_lt.to_tokens(tokens);
-        self.token_not.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for NodeDoctype {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_start.to_tokens(tokens);
-        self.token_doctype.to_tokens(tokens);
-        self.value.to_tokens(tokens);
-        self.token_end.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for FragmentOpen {
-
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_lt.to_tokens(tokens);
-        self.token_gt.to_tokens(tokens)
-    }
-}
-
-impl ToTokens for FragmentClose {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_lt.to_tokens(tokens);
-        self.token_sol.to_tokens(tokens);
-        self.token_gt.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for NodeFragment {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.tag_open.to_tokens(tokens);
-        for children in &self.children {
-            children.to_tokens(tokens)
-        }
-        self.tag_close.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for NodeText {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.value.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for Node {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Node::Block(b) => b.to_tokens(tokens),
-            Node::Comment(c) => c.to_tokens(tokens),
-            Node::Doctype(d) => d.to_tokens(tokens),
-            Node::Fragment(f) => f.to_tokens(tokens),
-            Node::Element(e) => e.to_tokens(tokens),
-            Node::Text(t) => t.to_tokens(tokens),
-        }
-    }
-}
-
-impl ToTokens for NodeName {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            NodeName::Path(name) => name.to_tokens(tokens),
-            NodeName::Punctuated(name) => name.to_tokens(tokens),
-            NodeName::Block(name) => name.to_tokens(tokens),
-        }
-    }
-}
-
-impl ToTokens for OpenTag {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_lt.to_tokens(tokens);
-        for attribute in &self.attributes {
-            attribute.to_tokens(tokens);
-        }
-        self.end_tag.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for token::OpenTagEnd {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_solidus.to_tokens(tokens);
-        self.token_gt.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for CloseTag {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_lt.to_tokens(tokens);
-        self.name.to_tokens(tokens);
-        self.token_solidus.to_tokens(tokens);
-        self.token_gt.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for token::ComStart {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_lt.to_tokens(tokens);
-        self.token_not.to_tokens(tokens);
-        self.token_minus[0].to_tokens(tokens);
-        self.token_minus[1].to_tokens(tokens);
-    }
-}
-
-impl ToTokens for token::ComEnd {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.token_minus[0].to_tokens(tokens);
-        self.token_minus[1].to_tokens(tokens);
-        self.token_gt.to_tokens(tokens);
-    }
-}
-
-
-
-fn block_expr(input: syn::parse::ParseStream) -> syn::Result<ExprBlock> {
-    let content;
-    let brace_token = braced!(content in input);
-    Ok(ExprBlock {
-        attrs: vec![],
-        label: None,
-        block: Block {
-            brace_token,
-            stmts: Block::parse_within(&content)?,
-        },
-    })
-}
-
 
 impl Parse for NodeText {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -293,73 +114,6 @@ impl Parse for KeyedAttribute {
     }
 }
 
-impl Parse for DynAttribute {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let value = NodeBlock::parse(input)?.into();
-
-        Ok(DynAttribute {
-            block: NodeBlock { value },
-        })
-    }
-}
-
-impl Parse for NodeAttribute {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.peek(Brace) {
-            Ok(NodeAttribute::Block(DynAttribute::parse(input)?))
-        } else {
-            Ok(NodeAttribute::Attribute(KeyedAttribute::parse(input)?))
-        }
-    }
-}
-
-
-impl Parse for FragmentOpen {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(FragmentOpen {
-            token_lt: input.parse::<Token![<]>()?,
-            token_gt: input.parse::<Token![>]>()?,
-        })
-    }
-}
-
-impl Parse for FragmentClose {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(FragmentClose {
-            token_lt: input.parse::<Token![<]>()?,
-            token_sol: input.parse::<Token![/]>()?,
-            token_gt: input.parse::<Token![>]>()?,
-        })
-    }
-}
-
-impl Parse for token::DocStart {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(token::DocStart {
-            token_lt: input.parse::<Token![<]>()?,
-            token_not: input.parse::<Token![!]>()?,
-        })
-    }
-}
-
-impl Parse for token::ComStart {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(token::ComStart {
-            token_lt: input.parse::<Token![<]>()?,
-            token_not: input.parse::<Token![!]>()?,
-            token_minus: [input.parse::<Token![-]>()?, input.parse::<Token![-]>()?],
-        })
-    }
-}
-
-impl Parse for token::ComEnd {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(token::ComEnd {
-            token_minus: [input.parse::<Token![-]>()?, input.parse::<Token![-]>()?],
-            token_gt: input.parse::<Token![>]>()?,
-        })
-    }
-}
 
 impl Parse for NodeFragment {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -423,17 +177,6 @@ impl Parse for NodeComment {
     }
 }
 
-impl Parse for token::OpenTagEnd {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let token_solidus = input.parse::<Option<Token![/]>>()?;
-        let token_gt = input.parse::<Token![>]>()?;
-        Ok(Self {
-            token_solidus,
-            token_gt
-        })
-    }
-}
-
 impl Parse for OpenTag {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let token_lt = input.parse::<Token![<]>()?;
@@ -448,20 +191,6 @@ impl Parse for OpenTag {
     }
 }
 
-impl Parse for CloseTag {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let token_lt = input.parse::<Token![<]>()?;
-        let token_solidus = input.parse::<Token![/]>()?;
-        let name = NodeName::parse(input)?;
-        let token_gt = input.parse::<Token![>]>()?;
-        Ok(CloseTag {
-            token_lt,
-            token_solidus,
-            name,
-            token_gt,
-        })
-    }
-}
 
 impl Parse for NodeElement {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -528,7 +257,7 @@ impl Parse for Node {
 /// ```
 /// let tokens = quote::quote!(few idents seperated by spaces and then minus sign - that will stop parsing);
 /// let concat_idents_without_minus = |input: ParseStream| -> syn::Result<String> {
-///     let (idents, _minus) = parse_vec_until<syn::Ident, _,_ >(input, |i|
+///     let (idents, _minus) = parse_tokens_until<syn::Ident, _,_ >(input, |i|
 ///         i.parse::<Token![-]()
 ///     );
 ///     let mut new_str = String::new();
@@ -560,6 +289,7 @@ F: Fn(ParseStream) -> syn::Result<U>
     Ok((collection, res))
 }
 
+/// Two-phase parsing, firstly find separator, and then parse array of tokens before separator.
 /// For simple inputs method work like `parse_tokens_until`,
 /// but it creates intermediate TokenStream and copy of all tokens until separator token is found.
 /// It is usefull when separator (or it's part) can be treated as part of token T.
@@ -605,4 +335,34 @@ F: Fn(ParseStream) -> syn::Result<U>
     };
     let collection = parser.parse2(tokens)?;
     Ok((collection, res))
+}
+
+
+// This method could be const generic until https://github.com/rust-lang/rust/issues/63569
+/// Parse array of tokens with 
+pub(super) fn parse_array_of2_tokens<T:Parse>(input: ParseStream) -> syn::Result<[T; 2]> {
+    Ok([input.parse()?, input.parse()?])
+}
+
+
+pub(super) fn to_tokens_array<I>(input: &mut TokenStream, iter: I)
+where
+    I: IntoIterator,
+    I::Item: ToTokens
+{
+        use quote::TokenStreamExt;
+        input.append_all(iter)
+}
+
+fn block_expr(input: syn::parse::ParseStream) -> syn::Result<ExprBlock> {
+    let content;
+    let brace_token = braced!(content in input);
+    Ok(ExprBlock {
+        attrs: vec![],
+        label: None,
+        block: Block {
+            brace_token,
+            stmts: Block::parse_within(&content)?,
+        },
+    })
 }
