@@ -1,7 +1,7 @@
 //!
 //! Implementation of ToTokens and Spanned for node related structs
 
-use proc_macro2::{extra::DelimSpan, Delimiter, Punct, TokenStream, TokenTree};
+use proc_macro2::{extra::DelimSpan, Delimiter, Punct, TokenStream, TokenTree, Span};
 use quote::{quote_spanned, ToTokens};
 use syn::{
     braced,
@@ -245,39 +245,25 @@ impl Parse for NodeElement {
 
 impl Parse for Node {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let parse_node = || -> syn::Result<Node> {
-            Ok(if input.peek(Token![<]) {
-                if input.peek2(Token![!]) {
-                    if input.peek3(Ident) {
-                        Node::Doctype(NodeDoctype::parse(input)?)
-                    } else {
-                        Node::Comment(NodeComment::parse(input)?)
-                    }
-                } else if input.peek2(Token![>]) {
-                    Node::Fragment(NodeFragment::parse(input)?)
+        let node = if input.peek(Token![<]) {
+            if input.peek2(Token![!]) {
+                if input.peek3(Ident) {
+                    Node::Doctype(NodeDoctype::parse(input)?)
                 } else {
-                    Node::Element(NodeElement::parse(input)?)
+                    Node::Comment(NodeComment::parse(input)?)
                 }
-            } else if input.peek(Brace) {
-                Node::Block(NodeBlock::parse(input)?)
-            } else {
-                Node::Text(NodeText::parse(input)?)
-            })
-        };
-
-        let mut cursor_changed = true;
-        while !input.is_empty() && cursor_changed {
-            let old_cursor = input.cursor();
-
-            match parse_node() {
-                Err(e) if crate::context::with_config(|c| c.emit_errors == EmitError::All) => {
-                    crate::context::push_error(e)
-                }
-                v => return v,
+            } else if input.peek2(Token![>]) {
+                Node::Fragment(NodeFragment::parse(input)?)
             }
-            cursor_changed = old_cursor != input.cursor();
-        }
-        Err(input.error("Unexpected eof, or cannot parse input as node"))
+            else {
+                Node::Element(NodeElement::parse(input)?)
+            }
+        } else if input.peek(Brace) {
+            Node::Block(NodeBlock::parse(input)?)
+        } else {
+            Node::Text(NodeText::parse(input)?)
+        };
+        Ok(node.into())
     }
 }
 
@@ -316,13 +302,26 @@ where
 {
     let mut collection = vec![];
     let res = loop {
+        let old_cursor = input.cursor();
         let fork = input.fork();
         if let Ok(res) = stop(&fork) {
             input.advance_to(&fork);
             break res;
         }
-        let v = input.parse::<T>();
-        collection.push(v?)
+        let result = input.parse::<T>();
+        let save_error_history = crate::context::with_config(|c| c.emit_errors == EmitError::All);
+        match result {
+            Err(e) if save_error_history  => {
+                crate::context::push_error(e)
+            }
+            v =>  {
+                collection.push(v?);
+            }
+        };
+
+        if old_cursor == input.cursor() {
+            return Err(input.error("Unexpected eof, or cannot parse input as node"))
+        }
     };
     Ok((collection, res))
 }
