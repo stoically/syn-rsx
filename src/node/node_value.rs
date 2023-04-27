@@ -8,7 +8,7 @@ use super::path_to_string;
 use crate::Error;
 
 /// Smart pointer to `syn::Expr`.
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeValueExpr {
     expr: Expr,
 }
@@ -115,7 +115,7 @@ impl TryFrom<&NodeValueExpr> for String {
 /// Block node.
 ///
 /// Arbitrary rust code in braced `{}` blocks.
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeBlock {
     /// The block value..
     pub value: NodeValueExpr,

@@ -46,7 +46,7 @@ impl fmt::Display for NodeType {
 }
 
 /// Node in the tree.
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub enum Node {
     Element(NodeElement),
     Text(NodeText),
@@ -104,7 +104,7 @@ impl Node {
 ///
 /// A HTMLElement tag, with optional children and attributes.
 /// Potentially selfclosing. Any tag name is valid.
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeElement {
     pub open_tag: atoms::OpenTag,
     #[to_tokens(tokens::to_tokens_array)]
@@ -128,7 +128,7 @@ impl NodeElement {
 /// with nightly rust.
 ///
 /// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeText {
     /// The text value.
     pub value: NodeValueExpr,
@@ -138,7 +138,7 @@ pub struct NodeText {
 ///
 /// Comment: `<!-- "comment" -->`, currently has the same restrictions as
 /// `Text` (comment needs to be quoted).
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeComment {
     pub token_start: token::ComStart,
     /// The comment value.
@@ -149,7 +149,7 @@ pub struct NodeComment {
 ///
 /// Doctype declaration: `<!DOCTYPE html>` (case insensitive), `html` is the
 /// node value in this case.
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeDoctype {
     pub token_start: token::DocStart,
     /// "doctype"
@@ -162,7 +162,7 @@ pub struct NodeDoctype {
 /// Fragement node.
 ///
 /// Fragment: `<></>`
-#[derive(Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeFragment {
     /// Open fragment token
     pub tag_open: FragmentOpen,

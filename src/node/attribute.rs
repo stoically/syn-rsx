@@ -9,7 +9,7 @@ use crate::{NodeBlock, NodeName, NodeValueExpr};
 /// Example:
 /// key=value // attribute with ident as value
 /// key // attribute without value
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct KeyedAttribute {
     /// Key of the element attribute.
     pub key: NodeName,
@@ -27,7 +27,7 @@ pub struct KeyedAttribute {
 ///
 /// Example:
 /// {"some-fixed-key"} // attribute without value that is computed from string
-#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct DynAttribute {
     pub block: NodeBlock,
 }
@@ -35,7 +35,7 @@ pub struct DynAttribute {
 /// Sum type for Dyn and Keyed attributes.
 ///
 /// Attributes is stored in opening tags.
-#[derive(Debug, syn_derive::Parse, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub enum NodeAttribute {
     #[parse(peek = Brace)]
     Block(DynAttribute),
