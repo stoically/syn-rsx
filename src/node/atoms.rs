@@ -46,7 +46,7 @@ pub mod token {
     }
 
     /// End part of element's open tag
-    /// `/>`
+    /// `/>` or `>`
     #[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
     pub struct OpenTagEnd {
         pub token_solidus: Option<Token![/]>,

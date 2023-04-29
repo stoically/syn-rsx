@@ -1,12 +1,15 @@
 //!
 //! Implementation of ToTokens and Spanned for node related structs
 
-use proc_macro2::{extra::DelimSpan, Delimiter, Punct, TokenStream, TokenTree, Span};
+use std::convert::TryInto;
+
+use proc_macro2::{extra::DelimSpan, Delimiter, Punct, TokenStream, TokenTree};
 use quote::{quote_spanned, ToTokens};
 use syn::{
     braced,
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _},
+    parse_quote,
     punctuated::Punctuated,
     spanned::Spanned,
     token::{Brace, Colon, PathSep},
@@ -39,6 +42,17 @@ impl ToTokens for KeyedAttribute {
         } else {
             tokens.extend(quote_spanned!(self.span => 
             #key ))
+        }
+    }
+}
+
+impl ToTokens for NodeBlock {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Invalid { brace, body } => {
+                brace.surround(tokens, |tokens| body.to_tokens(tokens))
+            }
+            Self::ValidBlock(b) => b.to_tokens(tokens),
         }
     }
 }
@@ -100,15 +114,24 @@ impl Parse for NodeName {
 
 impl Parse for NodeBlock {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let transform_block = crate::context::with_config(|c| c.transform_block.clone());
-        let value = if let Some(transform_fn) = transform_block {
-            block_transform(input, &*transform_fn)?
-        } else {
-            block_expr(input)?
+        let fork = input.fork();
+        let save_error_history = crate::context::with_config(|c| c.emit_errors == EmitError::All);
+
+        let block = match parse_valid_block_expr(&fork) {
+            Ok(value) => {
+                input.advance_to(&fork);
+                NodeBlock::ValidBlock(value.into())
+            }
+            Err(_e) if save_error_history => {
+                let content;
+                NodeBlock::Invalid {
+                    brace: braced!(content in input),
+                    body: content.parse()?,
+                }
+            }
+            Err(e) => return Err(e),
         };
-        Ok(NodeBlock {
-            value: value.into(),
-        })
+        Ok(block)
     }
 }
 
@@ -122,7 +145,7 @@ impl Parse for KeyedAttribute {
             }
 
             if input.peek(Brace) {
-                Some(NodeBlock::parse(input)?.into())
+                Some(NodeBlock::parse(input)?.try_into()?)
             } else {
                 Some(NodeValueExpr::new(input.parse()?))
             }
@@ -254,8 +277,7 @@ impl Parse for Node {
                 }
             } else if input.peek2(Token![>]) {
                 Node::Fragment(NodeFragment::parse(input)?)
-            }
-            else {
+            } else {
                 Node::Element(NodeElement::parse(input)?)
             }
         } else if input.peek(Brace) {
@@ -267,11 +289,50 @@ impl Parse for Node {
     }
 }
 
+/// Try skip unexpected tokens
+/// Rreturns true if succeed
+fn try_skip_puncts(input: ParseStream) -> bool {
+    let fork = input.fork();
+    let Ok(punct) = fork.parse::<Punct>() else {
+        return false;
+    };
+    if punct.as_char() == '<' {
+        return false;
+    }
+    input.advance_to(&fork);
+    true
+}
+/// Recoverable parsing. Use in cycle.
+/// Checks if $parsing is failing.
+/// If error - save it to array.
+/// Prevent infinite cycling by checking that cursor is mooving.
+macro_rules! try_recover {
+    (if let $binding:ident = $parsing:expr => $f:block
+     break if $old_cursor:ident == $input:ident.cursor() ) => {
+        let save_error_history = $crate::context::with_config(|c| c.emit_errors == EmitError::All);
+        let skip_tokens = $crate::context::with_config(|c| c.recover_after_invalid_puncts);
+        match $parsing {
+            Err(e) if save_error_history => $crate::context::push_error(e),
+            $binding => {
+                //TODO: add handling of unexpected punct
+                dbg!(&$binding);
+                $f
+            }
+        };
+
+        if $old_cursor == $input.cursor() {
+            let token_skiped = skip_tokens && dbg!(try_skip_puncts($input));
+            if !token_skiped {
+                return Err($input.error("Unexpected eof, or cannot parse input as node"));
+            }
+        }
+    };
+}
 /// Parse array of toknes that is seperated by spaces(tabs, or new lines).
 /// Stop parsing array when other branch could parse anything.
 ///
 /// Example:
-/// ```
+/// ```no_run
 /// # use syn::{parse::{Parser, ParseStream}, Ident, Result, parse_macro_input, Token};
 /// # use syn_rsx::{parse_tokens_until};
 /// # fn main() -> syn::Result<()>{
@@ -308,20 +369,12 @@ where
             input.advance_to(&fork);
             break res;
         }
-        let result = input.parse::<T>();
-        let save_error_history = crate::context::with_config(|c| c.emit_errors == EmitError::All);
-        match result {
-            Err(e) if save_error_history  => {
-                crate::context::push_error(e)
+        try_recover!(
+            if let result = input.parse::<T>() => {
+                collection.push(result?);
             }
-            v =>  {
-                collection.push(v?);
-            }
-        };
-
-        if old_cursor == input.cursor() {
-            return Err(input.error("Unexpected eof, or cannot parse input as node"))
-        }
+            break if old_cursor == input.cursor()
+        );
     };
     Ok((collection, res))
 }
@@ -369,7 +422,13 @@ where
     let parser = |input: ParseStream| {
         let mut collection = vec![];
         while !input.is_empty() {
-            collection.push(input.parse::<T>()?);
+            let old_cursor = input.cursor();
+            try_recover!(
+                if let result = input.parse::<T>() => {
+                    collection.push(result?);
+                }
+                break if old_cursor == input.cursor()
+            );
         }
 
         Ok(collection)
@@ -378,7 +437,7 @@ where
     Ok((collection, res))
 }
 
-// This method could be const generic until https://github.com/rust-lang/rust/issues/63569
+// This method couldn't be const generic until https://github.com/rust-lang/rust/issues/63569
 /// Parse array of tokens with
 pub(super) fn parse_array_of2_tokens<T: Parse>(input: ParseStream) -> syn::Result<[T; 2]> {
     Ok([input.parse()?, input.parse()?])
@@ -396,7 +455,7 @@ where
 /// Replace the next [`TokenTree::Group`] in the given parse stream with a
 /// token stream returned by a user callback, or parse as original block if
 /// no token stream is returned.
-fn block_transform(input: ParseStream, transform_fn: &TransformBlockFn) -> syn::Result<ExprBlock> {
+fn block_transform(input: ParseStream, transform_fn: &TransformBlockFn) -> syn::Result<Block> {
     input.step(|cursor| {
         let (block_group, block_span, next) = cursor
             .group(Delimiter::Brace)
@@ -424,28 +483,29 @@ fn block_transform(input: ParseStream, transform_fn: &TransformBlockFn) -> syn::
     })
 }
 
+fn parse_valid_block_expr(input: syn::parse::ParseStream) -> syn::Result<Block> {
+    let transform_block = crate::context::with_config(|c| c.transform_block.clone());
+    let value = if let Some(transform_fn) = transform_block {
+        block_transform(input, &*transform_fn)?
+    } else {
+        block_expr(input)?
+    };
+    Ok(value)
+}
 /// Parse the given stream and span as [`Expr::Block`].
-fn block_expr_with_extern_span(input: ParseStream, span: DelimSpan) -> syn::Result<ExprBlock> {
-    Ok(ExprBlock {
-        attrs: vec![],
-        label: None,
-        block: Block {
-            brace_token: Brace { span },
-            stmts: Block::parse_within(input)?,
-        },
+fn block_expr_with_extern_span(input: ParseStream, span: DelimSpan) -> syn::Result<Block> {
+    Ok(Block {
+        brace_token: Brace { span },
+        stmts: Block::parse_within(input)?,
     })
 }
 
 /// Parse the given stream as [`Expr::Block`].
-fn block_expr(input: syn::parse::ParseStream) -> syn::Result<ExprBlock> {
+fn block_expr(input: syn::parse::ParseStream) -> syn::Result<Block> {
     let content;
     let brace_token = braced!(content in input);
-    Ok(ExprBlock {
-        attrs: vec![],
-        label: None,
-        block: Block {
-            brace_token,
-            stmts: Block::parse_within(&content)?,
-        },
+    Ok(Block {
+        brace_token,
+        stmts: Block::parse_within(&content)?,
     })
 }

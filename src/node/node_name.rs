@@ -3,7 +3,7 @@ use std::{convert::TryFrom, fmt};
 use proc_macro2::Punct;
 use syn::{
     punctuated::{Pair, Punctuated},
-    Expr, ExprBlock, ExprPath, Ident,
+    Block, Expr, ExprBlock, ExprPath, Ident,
 };
 
 use super::path_to_string;
@@ -21,15 +21,15 @@ pub enum NodeName {
     Punctuated(Punctuated<Ident, Punct>),
 
     /// Arbitrary rust code in braced `{}` blocks.
-    Block(Expr),
+    Block(Block),
 }
 
-impl TryFrom<&NodeName> for ExprBlock {
+impl TryFrom<&NodeName> for Block {
     type Error = Error;
 
     fn try_from(node: &NodeName) -> Result<Self, Self::Error> {
         match node {
-            NodeName::Block(Expr::Block(expr)) => Ok(expr.to_owned()),
+            NodeName::Block(b) => Ok(b.to_owned()),
             _ => Err(Error::TryFrom(
                 "NodeName does not match NodeName::Block(Expr::Block(_))".into(),
             )),

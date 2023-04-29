@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use eyre::Result;
 use quote::quote;
-use syn::ExprBlock;
+use syn::{Block, ExprBlock};
 use syn_rsx::{
     parse2, parse2_with_config, KeyedAttribute, Node, NodeAttribute, NodeElement, NodeType,
     ParserConfig,
@@ -124,7 +124,7 @@ fn test_block_as_tag_name() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert!(ExprBlock::try_from(element.name()).is_ok());
+    assert!(Block::try_from(element.name()).is_ok());
 
     Ok(())
 }
@@ -138,7 +138,7 @@ fn test_block_as_tag_name_with_closing_tag() -> Result<()> {
     let nodes = parse2(tokens)?;
     let element = get_element(&nodes, 0);
 
-    assert!(ExprBlock::try_from(element.name()).is_ok());
+    assert!(Block::try_from(element.name()).is_ok());
 
     Ok(())
 }
@@ -261,9 +261,9 @@ fn test_transform_block_some() -> Result<()> {
     let Node::Block(block) = get_element_child(&nodes, 0, 0) else { panic!("expected block") };
 
     assert_eq!(
-        match block.value.as_ref() {
-            Expr::Block(expr) => {
-                match &expr.block.stmts[0] {
+        match block.try_block().as_ref() {
+            Some(block) => {
+                match &block.stmts[0] {
                     Stmt::Expr(Expr::Lit(expr), None) => match &expr.lit {
                         Lit::Str(lit_str) => Some(lit_str.value()),
                         _ => None,

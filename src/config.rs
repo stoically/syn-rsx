@@ -15,6 +15,7 @@ pub struct ParserConfig {
     pub(crate) type_of_top_level_nodes: Option<NodeType>,
     pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
     pub(crate) emit_errors: EmitError,
+    pub(crate) recover_after_invalid_puncts: bool,
 }
 
 /// How parsing error should be emitted.
@@ -62,6 +63,16 @@ impl ParserConfig {
         self.emit_errors = emit_errors;
         self
     }
+
+    /// If parser is recoverable, try to skip some tokens, to parse more Nodes.
+    ///
+    /// For example we parse '<div>"".</div>' dot is unexpected punct so parsing
+    /// will stop.
+    pub fn recover_after_invalid_puncts(mut self, skip_tokens: bool) -> Self {
+        self.recover_after_invalid_puncts = skip_tokens;
+        self
+    }
+
     /// Transforms the `value` of all `NodeType::Block`s with the given closure
     /// callback. The provided `ParseStream` is the content of the block.
     ///
