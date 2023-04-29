@@ -3,7 +3,7 @@ use std::{convert::TryFrom, fmt};
 use proc_macro2::Punct;
 use syn::{
     punctuated::{Pair, Punctuated},
-    Block, Expr, ExprBlock, ExprPath, Ident,
+    Block, ExprPath, Ident,
 };
 
 use super::path_to_string;

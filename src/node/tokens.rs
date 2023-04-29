@@ -3,17 +3,16 @@
 
 use std::convert::TryInto;
 
-use proc_macro2::{extra::DelimSpan, Delimiter, Punct, TokenStream, TokenTree};
+use proc_macro2::{extra::DelimSpan, Delimiter, Punct, Span, TokenStream, TokenTree};
 use quote::{quote_spanned, ToTokens};
 use syn::{
     braced,
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _},
-    parse_quote,
     punctuated::Punctuated,
     spanned::Spanned,
     token::{Brace, Colon, PathSep},
-    Block, Error, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Token,
+    Block, Error, ExprLit, ExprPath, Ident, LitStr, Path, PathSegment, Token,
 };
 
 use super::{
@@ -22,11 +21,13 @@ use super::{
         CloseTag, FragmentClose, FragmentOpen, OpenTag,
     },
     attribute::KeyedAttribute,
+    raw_text::RawText,
     Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText,
 };
 use crate::{
     config::{EmitError, TransformBlockFn},
     punctuation::Dash,
+    token::CloseTagStart,
     NodeAttribute, NodeElement, NodeValueExpr, Parser,
 };
 
@@ -166,7 +167,33 @@ impl Parse for NodeFragment {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let tag_open = FragmentOpen::parse(input)?;
 
-        let (children, tag_close) = parse_tokens_until::<Node, _, _>(input, FragmentClose::parse)?;
+        let is_raw = |name| crate::context::with_config(|c| c.raw_text_elements.contains(name));
+
+        let (mut children, tag_close) = if is_raw("") {
+            let (child, closed_tag) =
+                parse_tokens_with_separator::<TokenStream, _, _>(input, FragmentClose::parse)?;
+
+            debug_assert!(child.len() < 2);
+            (
+                child.into_iter().map(|s| Node::RawText(s.into())).collect(),
+                closed_tag,
+            )
+        } else {
+            parse_tokens_until::<Node, _, _>(input, FragmentClose::parse)?
+        };
+        let open_tag_end = tag_open.token_gt.span();
+        let close_tag_start = tag_close.token_lt.span();
+        let spans: Vec<Span> = Some(open_tag_end)
+            .into_iter()
+            .chain(children.iter().map(|n| n.span()))
+            .chain(Some(close_tag_start))
+            .collect();
+        for (spans, children) in spans.windows(3).zip(&mut children) {
+            match children {
+                Node::RawText(t) => t.set_tag_spans(spans[0], spans[2]),
+                _ => {}
+            }
+        }
         Ok(NodeFragment {
             tag_open,
             children,
@@ -239,29 +266,61 @@ impl Parse for OpenTag {
 impl Parse for NodeElement {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let open_tag = OpenTag::parse(input)?;
-        let (children, close_tag_token) = if !open_tag.is_self_closed() {
-            let (children, close_tag_token) =
-                parse_tokens_until::<Node, _, _>(input, token::CloseTagStart::parse)?;
-            (children, Some(close_tag_token))
-        } else {
-            (vec![], None)
-        };
-        let close_tag = close_tag_token
-            .map(|t| CloseTag::parse_with_start_tag(input, t))
-            .transpose()?;
+        let is_known_self_closed =
+            |name| crate::context::with_config(|c| c.always_self_closed_elements.contains(name));
+        let is_raw = |name| crate::context::with_config(|c| c.raw_text_elements.contains(name));
 
-        if let Some(close_tag) = &close_tag {
-            if close_tag.name != open_tag.name {
-                return Err(Error::new(
-                    close_tag.span(),
-                    "close tag has no coresponding open tag",
-                ));
+        let tag_name_str = &*open_tag.name.to_string();
+        if open_tag.is_self_closed() || is_known_self_closed(tag_name_str) {
+            return Ok(NodeElement {
+                open_tag,
+                children: vec![],
+                close_tag: None,
+            });
+        }
+
+        let (mut children, close_tag) = if is_raw(tag_name_str) {
+            let (child, closed_tag) =
+                parse_tokens_with_separator::<TokenStream, _, _>(input, CloseTag::parse)?;
+
+            debug_assert!(child.len() < 2);
+            let child = child.into_iter().map(|s| Node::RawText(s.into())).collect();
+            (child, closed_tag)
+        } else {
+            // If node is not raw use any closing tag as separator, to early report about
+            // invalid closing tags.
+            let (children, close_tag) =
+                parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse)?;
+
+            let close_tag = CloseTag::parse_with_start_tag(input, close_tag)?;
+            (children, close_tag)
+        };
+
+        let open_tag_end = open_tag.end_tag.token_gt.span();
+        let close_tag_start = close_tag.start_tag.token_lt.span();
+        let spans: Vec<Span> = Some(open_tag_end)
+            .into_iter()
+            .chain(children.iter().map(|n| n.span()))
+            .chain(Some(close_tag_start))
+            .collect();
+        for (spans, children) in spans.windows(3).zip(&mut children) {
+            match children {
+                Node::RawText(t) => t.set_tag_spans(spans[0], spans[2]),
+                _ => {}
             }
         }
+
+        if close_tag.name != open_tag.name {
+            return Err(Error::new(
+                close_tag.span(),
+                "close tag has no coresponding open tag",
+            ));
+        }
+
         Ok(NodeElement {
             open_tag,
             children,
-            close_tag,
+            close_tag: Some(close_tag),
         })
     }
 }
@@ -282,8 +341,10 @@ impl Parse for Node {
             }
         } else if input.peek(Brace) {
             Node::Block(NodeBlock::parse(input)?)
-        } else {
+        } else if input.peek(LitStr) {
             Node::Text(NodeText::parse(input)?)
+        } else {
+            Node::RawText(RawText::parse(input)?)
         };
         Ok(node.into())
     }
@@ -313,15 +374,11 @@ macro_rules! try_recover {
         let skip_tokens = $crate::context::with_config(|c| c.recover_after_invalid_puncts);
         match $parsing {
             Err(e) if save_error_history => $crate::context::push_error(e),
-            $binding => {
-                //TODO: add handling of unexpected punct
-                dbg!(&$binding);
-                $f
-            }
+            $binding => $f,
         };
 
         if $old_cursor == $input.cursor() {
-            let token_skiped = skip_tokens && dbg!(try_skip_puncts($input));
+            let token_skiped = skip_tokens && try_skip_puncts($input);
             if !token_skiped {
                 return Err($input.error("Unexpected eof, or cannot parse input as node"));
             }

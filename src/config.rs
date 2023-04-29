@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashSet, rc::Rc};
 
 use proc_macro2::TokenStream;
 use syn::{parse::ParseStream, Result};
@@ -16,6 +16,8 @@ pub struct ParserConfig {
     pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
     pub(crate) emit_errors: EmitError,
     pub(crate) recover_after_invalid_puncts: bool,
+    pub(crate) always_self_closed_elements: HashSet<&'static str>,
+    pub(crate) raw_text_elements: HashSet<&'static str>,
 }
 
 /// How parsing error should be emitted.
@@ -70,6 +72,34 @@ impl ParserConfig {
     /// will stop.
     pub fn recover_after_invalid_puncts(mut self, skip_tokens: bool) -> Self {
         self.recover_after_invalid_puncts = skip_tokens;
+        self
+    }
+
+    /// Set array of nodes that is known to be self closed,
+    /// Parser will not search for it closing tag,
+    /// even if no solidus at end of it open part was found.
+    ///
+    /// Because it is constants, we expect it as 'static refs.
+    ///
+    /// Examples:
+    /// <br> <link> <img>
+    pub fn always_self_closed_elements(mut self, elements: HashSet<&'static str>) -> Self {
+        self.always_self_closed_elements = elements;
+        self
+    }
+
+    /// Set array of nodes that is known to be parsed in two-phases,
+    /// Parser will skip parsing of children nodes.
+    /// and provide one child with RawText instead.
+    ///
+    /// This is usefull when parsing <script> or <style> tags elements.
+    ///
+    /// If you need fragment to be used in this context, empty string("") should
+    /// be inserted.
+    ///
+    /// Raw texts has few limitations, check out `RawText` documentation.
+    pub fn raw_text_elements(mut self, elements: HashSet<&'static str>) -> Self {
+        self.raw_text_elements = elements;
         self
     }
 

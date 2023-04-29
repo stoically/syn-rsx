@@ -9,6 +9,7 @@ mod atoms;
 mod attribute;
 mod node_name;
 mod node_value;
+mod raw_text;
 pub mod tokens;
 
 pub use attribute::{DynAttribute, KeyedAttribute, NodeAttribute};
@@ -16,6 +17,7 @@ pub use node_name::NodeName;
 pub use node_value::{NodeBlock, NodeValueExpr};
 
 pub use self::atoms::*;
+use self::raw_text::RawText;
 
 /// Node types.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +28,7 @@ pub enum NodeType {
     Doctype,
     Block,
     Fragment,
+    RawText,
 }
 
 impl fmt::Display for NodeType {
@@ -36,6 +39,7 @@ impl fmt::Display for NodeType {
             match self {
                 Self::Element => "NodeType::Element",
                 Self::Text => "NodeType::Text",
+                Self::RawText => "NodeType::RawText",
                 Self::Comment => "NodeType::Comment",
                 Self::Doctype => "NodeType::Doctype",
                 Self::Block => "NodeType::Block",
@@ -48,12 +52,13 @@ impl fmt::Display for NodeType {
 /// Node in the tree.
 #[derive(Clone, Debug, syn_derive::ToTokens)]
 pub enum Node {
-    Element(NodeElement),
-    Text(NodeText),
     Comment(NodeComment),
     Doctype(NodeDoctype),
-    Block(NodeBlock),
     Fragment(NodeFragment),
+    Element(NodeElement),
+    Block(NodeBlock),
+    Text(NodeText),
+    RawText(RawText),
 }
 
 impl Node {
@@ -78,6 +83,7 @@ impl Node {
             Self::Doctype(_) => NodeType::Element,
             Self::Block(_) => NodeType::Block,
             Self::Fragment(_) => NodeType::Fragment,
+            Self::RawText(_) => NodeType::RawText,
         }
     }
 
