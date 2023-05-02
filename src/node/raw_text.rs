@@ -19,8 +19,7 @@ use syn::{
 /// 1. It cant contain any unclosed branches, braces or parens.
 /// 2. Some tokens like ' ` can be treated as invalid, because in rust it only
 /// allowed in certain contexts.
-///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct RawText {
     token_stream: TokenStream,
     // Span that started before previous token, and after next.
@@ -64,6 +63,20 @@ impl RawText {
             .or_else(|| self.to_source_text(false))
             .unwrap_or_else(|| self.to_token_stream_string())
     }
+
+    pub fn parse_terminated<F, U>(input: ParseStream, func: F) -> syn::Result<(Self, U)>
+    where
+        F: Fn(ParseStream) -> syn::Result<U>,
+    {
+        let array: (Vec<RawText>, _) = super::tokens::parse_tokens_with_separator(input, func)?;
+        debug_assert!(array.0.len() < 2);
+        let r = match &*array.0 {
+            [r, ..] => r.clone(),
+            [] => Default::default(),
+        };
+
+        Ok((r, array.1))
+    }
 }
 
 impl Parse for RawText {
@@ -73,7 +86,7 @@ impl Parse for RawText {
             |input: ParseStream| input.peek(Token![<]) || input.peek(Brace) || input.peek(LitStr);
         // Parse any input until catching any node.
         // Fail only on eof.
-        while !any_node(input) {
+        while !any_node(input) && !input.is_empty() {
             token_stream.extend([input.parse::<TokenTree>()?])
         }
         Ok(Self {

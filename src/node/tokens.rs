@@ -1,8 +1,6 @@
 //!
 //! Implementation of ToTokens and Spanned for node related structs
 
-use std::convert::TryInto;
-
 use proc_macro2::{extra::DelimSpan, Delimiter, Punct, Span, TokenStream, TokenTree};
 use quote::{quote_spanned, ToTokens};
 use syn::{
@@ -12,12 +10,12 @@ use syn::{
     punctuated::Punctuated,
     spanned::Spanned,
     token::{Brace, Colon, PathSep},
-    Block, Error, ExprLit, ExprPath, Ident, LitStr, Path, PathSegment, Token,
+    Block, Error, Expr, ExprPath, Ident, LitStr, Path, PathSegment, Token,
 };
 
 use super::{
     atoms::{
-        token::{self, ComEnd, ComStart, DocStart},
+        token::{self, DocStart},
         CloseTag, FragmentClose, FragmentOpen, OpenTag,
     },
     attribute::KeyedAttribute,
@@ -28,7 +26,7 @@ use crate::{
     config::{EmitError, TransformBlockFn},
     punctuation::Dash,
     token::CloseTagStart,
-    NodeAttribute, NodeElement, NodeValueExpr, Parser,
+    NodeAttribute, NodeElement, Parser,
 };
 
 impl ToTokens for KeyedAttribute {
@@ -55,14 +53,6 @@ impl ToTokens for NodeBlock {
             }
             Self::ValidBlock(b) => b.to_tokens(tokens),
         }
-    }
-}
-
-impl Parse for NodeText {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let value = input.parse::<ExprLit>()?.into();
-
-        Ok(NodeText { value })
     }
 }
 
@@ -145,11 +135,7 @@ impl Parse for KeyedAttribute {
                 return Err(Error::new(key.span(), "missing attribute value"));
             }
 
-            if input.peek(Brace) {
-                Some(NodeBlock::parse(input)?.try_into()?)
-            } else {
-                Some(NodeValueExpr::new(input.parse()?))
-            }
+            Some(input.parse::<Expr>()?)
         } else {
             None
         };
@@ -209,39 +195,11 @@ impl Parse for NodeDoctype {
         if doctype_keyword.to_string().to_lowercase() != "doctype" {
             return Err(input.error("expected Doctype"));
         }
-        let doctype = input.parse::<Ident>()?;
-        let token_end = input.parse::<Token![>]>()?;
+        let (value, token_end) = RawText::parse_terminated(input, <Token![>]>::parse)?;
 
-        let mut segments = Punctuated::new();
-        segments.push_value(PathSegment::from(doctype));
-        let value = NodeValueExpr::new(
-            ExprPath {
-                attrs: vec![],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments,
-                },
-            }
-            .into(),
-        );
         Ok(Self {
             token_start,
             token_doctype: doctype_keyword,
-            value,
-            token_end,
-        })
-    }
-}
-
-impl Parse for NodeComment {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let token_start = ComStart::parse(input)?;
-        let value = NodeValueExpr::new(input.parse::<ExprLit>()?.into());
-        let token_end = ComEnd::parse(input)?;
-
-        Ok(NodeComment {
-            token_start,
             value,
             token_end,
         })
@@ -252,6 +210,7 @@ impl Parse for OpenTag {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let token_lt = input.parse::<Token![<]>()?;
         let name = NodeName::parse(input)?;
+
         let (attributes, end_tag) =
             parse_tokens_with_separator::<NodeAttribute, _, _>(input, token::OpenTagEnd::parse)?;
         Ok(OpenTag {
@@ -351,7 +310,7 @@ impl Parse for Node {
 }
 
 /// Try skip unexpected tokens
-/// Rreturns true if succeed
+/// Returns true if succeed
 fn try_skip_puncts(input: ParseStream) -> bool {
     let fork = input.fork();
     let Ok(punct) = fork.parse::<Punct>() else {

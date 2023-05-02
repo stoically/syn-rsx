@@ -24,7 +24,7 @@
 //! // Work with the nodes.
 //! assert_eq!(element.name().to_string(), "hello");
 //! assert_eq!(attribute.key.to_string(), "world");
-//! assert_eq!(String::try_from(&text.value)?, "hi");
+//! assert_eq!(text.value_string(), "hi");
 //! # Ok(())
 //! # }
 //! ```
@@ -116,7 +116,7 @@
 //!
 //! - **Helpful error reporting out of the box**
 //!
-//!   ```ignore
+//!   ```no_build
 //!   error: open tag has no corresponding close tag and is not self-closing
 //!   --> examples/html-to-string-macro/tests/lib.rs:5:24
 //!     |
@@ -128,7 +128,7 @@
 //!
 //!  This can be used to improve error reporting, e.g.
 //!
-//!  ```ignore
+//!  ```no_build
 //!  error: Invalid element
 //!  --> examples/src/main.rs:14:13
 //!     |

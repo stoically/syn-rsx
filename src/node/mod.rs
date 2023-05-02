@@ -3,7 +3,7 @@
 use std::fmt;
 
 use proc_macro2::Ident;
-use syn::{ExprPath, Token};
+use syn::{ExprPath, LitStr, Token};
 
 mod atoms;
 mod attribute;
@@ -14,7 +14,7 @@ pub mod tokens;
 
 pub use attribute::{DynAttribute, KeyedAttribute, NodeAttribute};
 pub use node_name::NodeName;
-pub use node_value::{NodeBlock, NodeValueExpr};
+pub use node_value::NodeBlock;
 
 pub use self::atoms::*;
 use self::raw_text::RawText;
@@ -129,39 +129,45 @@ impl NodeElement {
 
 /// Text node.
 ///
-/// Quoted text. It's [planned to support unquoted text] as well
-/// using span start and end, but that currently only works
-/// with nightly rust.
-///
-/// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
-#[derive(Clone, Debug, syn_derive::ToTokens)]
+/// Quoted text. Unquoted can be found in `RawText`.
+#[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct NodeText {
     /// The text value.
-    pub value: NodeValueExpr,
+    pub value: LitStr,
+}
+
+impl NodeText {
+    /// Returns value of inner LitStr
+    pub fn value_string(&self) -> String {
+        self.value.value()
+    }
 }
 
 /// Comment node.
 ///
 /// Comment: `<!-- "comment" -->`, currently has the same restrictions as
 /// `Text` (comment needs to be quoted).
-#[derive(Clone, Debug, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct NodeComment {
     pub token_start: token::ComStart,
     /// The comment value.
-    pub value: NodeValueExpr,
+    pub value: LitStr,
     pub token_end: token::ComEnd,
 }
 /// Doctype node.
 ///
 /// Doctype declaration: `<!DOCTYPE html>` (case insensitive), `html` is the
 /// node value in this case.
+/// Usually doctype only contaim html, but also can contain arbitrary DOCTYPE
+/// legacy string, or "obsolete permitted DOCTYPE string", therewhy value is
+/// RawText.
 #[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeDoctype {
     pub token_start: token::DocStart,
     /// "doctype"
     pub token_doctype: Ident,
     /// The doctype value.
-    pub value: NodeValueExpr,
+    pub value: RawText,
     pub token_end: Token![>],
 }
 
