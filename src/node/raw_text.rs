@@ -68,7 +68,7 @@ impl RawText {
     where
         F: Fn(ParseStream) -> syn::Result<U>,
     {
-        let array: (Vec<RawText>, _) = super::tokens::parse_tokens_with_separator(input, func)?;
+        let array: (Vec<RawText>, _) = super::tokens::parse_tokens_with_ending(input, func)?;
         debug_assert!(array.0.len() < 2);
         let r = match &*array.0 {
             [r, ..] => r.clone(),

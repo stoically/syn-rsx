@@ -1,5 +1,5 @@
-use proc_macro2::Span;
-use syn::{token::Brace, Expr, Lit};
+use proc_macro2::{Span, TokenStream};
+use syn::{parse::ParseStream, spanned::Spanned, token::Brace, Expr, Lit};
 
 use crate::{NodeBlock, NodeName};
 
@@ -59,6 +59,24 @@ impl KeyedAttribute {
             },
             _ => None,
         })
+    }
+
+    // Checks if error is about eof.
+    // This error is known to report Span::call_site.
+    // Correct them to point to ParseStream
+    pub(crate) fn correct_expr_error_span(error: syn::Error, input: ParseStream) -> syn::Error {
+        let error_str = error.to_string();
+        if error_str.starts_with("unexpected end of input") {
+            dbg!(&input.span());
+            let stream = dbg!(input
+                .parse::<TokenStream>()
+                .expect("BUG: Token stream should always be parsable"));
+            return syn::Error::new(
+                dbg!(stream.span()),
+                format!("failed to parse expression: {}", error),
+            );
+        }
+        error
     }
 }
 

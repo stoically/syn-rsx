@@ -135,7 +135,12 @@ impl Parse for KeyedAttribute {
                 return Err(Error::new(key.span(), "missing attribute value"));
             }
 
-            Some(input.parse::<Expr>()?)
+            let fork = input.fork();
+            let res = fork
+                .parse::<Expr>()
+                .map_err(|e| KeyedAttribute::correct_expr_error_span(e, input))?;
+            input.advance_to(&fork);
+            Some(res)
         } else {
             None
         };
@@ -157,7 +162,7 @@ impl Parse for NodeFragment {
 
         let (mut children, tag_close) = if is_raw("") {
             let (child, closed_tag) =
-                parse_tokens_with_separator::<TokenStream, _, _>(input, FragmentClose::parse)?;
+                parse_tokens_with_ending::<TokenStream, _, _>(input, FragmentClose::parse)?;
 
             debug_assert!(child.len() < 2);
             (
@@ -212,7 +217,7 @@ impl Parse for OpenTag {
         let name = NodeName::parse(input)?;
 
         let (attributes, end_tag) =
-            parse_tokens_with_separator::<NodeAttribute, _, _>(input, token::OpenTagEnd::parse)?;
+            parse_tokens_with_ending::<NodeAttribute, _, _>(input, token::OpenTagEnd::parse)?;
         Ok(OpenTag {
             token_lt,
             name,
@@ -240,7 +245,7 @@ impl Parse for NodeElement {
 
         let (mut children, close_tag) = if is_raw(tag_name_str) {
             let (child, closed_tag) =
-                parse_tokens_with_separator::<TokenStream, _, _>(input, CloseTag::parse)?;
+                parse_tokens_with_ending::<TokenStream, _, _>(input, CloseTag::parse)?;
 
             debug_assert!(child.len() < 2);
             let child = child.into_iter().map(|s| Node::RawText(s.into())).collect();
@@ -409,7 +414,7 @@ where
 /// In this example "<" can can be parsed as part of expression, but we want to
 /// split tokens after "<>" was found. So instead of parsing all input as
 /// expression, firstly we need to seperate it into two chunks.
-pub fn parse_tokens_with_separator<T, F, U>(
+pub fn parse_tokens_with_ending<T, F, U>(
     input: ParseStream,
     separator: F,
 ) -> syn::Result<(Vec<T>, U)>
