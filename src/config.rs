@@ -15,7 +15,6 @@ pub struct ParserConfig {
     pub(crate) type_of_top_level_nodes: Option<NodeType>,
     pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
     pub(crate) emit_errors: EmitError,
-    pub(crate) recover_after_invalid_puncts: bool,
     pub(crate) always_self_closed_elements: HashSet<&'static str>,
     pub(crate) raw_text_elements: HashSet<&'static str>,
 }
@@ -63,15 +62,6 @@ impl ParserConfig {
     /// Change behaviour of emitting errors
     pub fn emit_errors(mut self, emit_errors: EmitError) -> Self {
         self.emit_errors = emit_errors;
-        self
-    }
-
-    /// If parser is recoverable, try to skip some tokens, to parse more Nodes.
-    ///
-    /// For example we parse '<div>"".</div>' dot is unexpected punct so parsing
-    /// will stop.
-    pub fn recover_after_invalid_puncts(mut self, skip_tokens: bool) -> Self {
-        self.recover_after_invalid_puncts = skip_tokens;
         self
     }
 

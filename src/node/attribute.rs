@@ -67,12 +67,11 @@ impl KeyedAttribute {
     pub(crate) fn correct_expr_error_span(error: syn::Error, input: ParseStream) -> syn::Error {
         let error_str = error.to_string();
         if error_str.starts_with("unexpected end of input") {
-            dbg!(&input.span());
-            let stream = dbg!(input
+            let stream = input
                 .parse::<TokenStream>()
-                .expect("BUG: Token stream should always be parsable"));
+                .expect("BUG: Token stream should always be parsable");
             return syn::Error::new(
-                dbg!(stream.span()),
+                stream.span(),
                 format!("failed to parse expression: {}", error),
             );
         }
@@ -80,22 +79,18 @@ impl KeyedAttribute {
     }
 }
 
-///
-/// Element attribute that is computed from rust code block.
-///
-/// Example:
-/// {"some-fixed-key"} // attribute without value that is computed from string
-#[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
-pub struct DynAttribute {
-    pub block: NodeBlock,
-}
-
 /// Sum type for Dyn and Keyed attributes.
 ///
 /// Attributes is stored in opening tags.
 #[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub enum NodeAttribute {
+    ///
+    /// Element attribute that is computed from rust code block.
+    ///
+    /// Example:
+    /// {"some-fixed-key"} // attribute without value that is computed from
+    /// string
     #[parse(peek = Brace)]
-    Block(DynAttribute),
+    Block(NodeBlock),
     Attribute(KeyedAttribute),
 }

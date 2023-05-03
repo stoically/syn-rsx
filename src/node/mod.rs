@@ -12,7 +12,7 @@ mod node_value;
 mod raw_text;
 pub mod tokens;
 
-pub use attribute::{DynAttribute, KeyedAttribute, NodeAttribute};
+pub use attribute::{KeyedAttribute, NodeAttribute};
 pub use node_name::NodeName;
 pub use node_value::NodeBlock;
 

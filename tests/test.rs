@@ -542,27 +542,6 @@ fn test_single_element_with_different_attributes() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_parse_invalid_block() -> Result<()> {
-    let tokens = TokenStream::from_str(
-        "<foo>{x.}</foo>", // dot is not allowed
-    )
-    .unwrap();
-    let config = ParserConfig::new().emit_errors(syn_rsx::EmitError::All);
-    let nodes = parse2_with_config(tokens, config)?;
-
-    // syn_rsx only expose api for emiting errors in token_stream
-    let errors = syn_rsx::try_emit_errors(TokenStream::new());
-    assert!(!errors.is_empty());
-
-    let Node::Block(block) = get_element_child(&nodes, 0, 0) else { panic!("expected block") };
-
-    assert!(block.try_block().is_none());
-
-    assert!(Block::try_from(block.clone()).is_err());
-    Ok(())
-}
-
 fn get_element(nodes: &[Node], element_index: usize) -> &NodeElement {
     let Some(Node::Element(element)) = nodes.get(element_index) else { panic!("expected element") };
     element

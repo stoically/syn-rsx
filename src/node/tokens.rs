@@ -23,7 +23,7 @@ use super::{
     Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText,
 };
 use crate::{
-    config::{EmitError, TransformBlockFn},
+    config::{TransformBlockFn},
     punctuation::Dash,
     token::CloseTagStart,
     NodeAttribute, NodeElement, Parser,
@@ -106,7 +106,7 @@ impl Parse for NodeName {
 impl Parse for NodeBlock {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let fork = input.fork();
-        let save_error_history = crate::context::with_config(|c| c.emit_errors == EmitError::All);
+        let save_error_history = crate::context::is_recoverable_parser();
 
         let block = match parse_valid_block_expr(&fork) {
             Ok(value) => {
@@ -136,9 +136,16 @@ impl Parse for KeyedAttribute {
             }
 
             let fork = input.fork();
-            let res = fork
-                .parse::<Expr>()
-                .map_err(|e| KeyedAttribute::correct_expr_error_span(e, input))?;
+            let res = fork.parse::<Expr>().map_err(|e| {
+                // if we stuck on end of input, span that is created will be call_site, so we
+                // need to correct it.
+                if fork.is_empty() {
+                    KeyedAttribute::correct_expr_error_span(e, input)
+                } else {
+                    e
+                }
+            })?;
+
             input.advance_to(&fork);
             Some(res)
         } else {
@@ -275,10 +282,10 @@ impl Parse for NodeElement {
         }
 
         if close_tag.name != open_tag.name {
-            return Err(Error::new(
+            try_recover_from_error(Error::new(
                 close_tag.span(),
                 "close tag has no coresponding open tag",
-            ));
+            ))?;
         }
 
         Ok(NodeElement {
@@ -314,38 +321,31 @@ impl Parse for Node {
     }
 }
 
-/// Try skip unexpected tokens
-/// Returns true if succeed
-fn try_skip_puncts(input: ParseStream) -> bool {
-    let fork = input.fork();
-    let Ok(punct) = fork.parse::<Punct>() else {
-        return false;
-    };
-    if punct.as_char() == '<' {
-        return false;
+/// push error if parser is recoverable, or return it if not
+fn try_recover_from_error(error: syn::Error) -> syn::Result<()> {
+    if crate::context::is_recoverable_parser() {
+        crate::context::push_error(error);
+        Ok(())
+    } else {
+        Err(error)
     }
-    input.advance_to(&fork);
-    true
 }
+
 /// Recoverable parsing. Use in cycle.
 /// Checks if $parsing is failing.
 /// If error - save it to array.
 /// Prevent infinite cycling by checking that cursor is mooving.
-macro_rules! try_recover {
+macro_rules! try_recover_cycle {
     (if let $binding:ident = $parsing:expr => $f:block
      break if $old_cursor:ident == $input:ident.cursor() ) => {
-        let save_error_history = $crate::context::with_config(|c| c.emit_errors == EmitError::All);
-        let skip_tokens = $crate::context::with_config(|c| c.recover_after_invalid_puncts);
+        let save_error_history = $crate::context::is_recoverable_parser();
         match $parsing {
             Err(e) if save_error_history => $crate::context::push_error(e),
             $binding => $f,
         };
 
         if $old_cursor == $input.cursor() {
-            let token_skiped = skip_tokens && try_skip_puncts($input);
-            if !token_skiped {
-                return Err($input.error("Unexpected eof, or cannot parse input as node"));
-            }
+            return Err($input.error("Unexpected eof, or cannot parse input as node"));
         }
     };
 }
@@ -390,7 +390,7 @@ where
             input.advance_to(&fork);
             break res;
         }
-        try_recover!(
+        try_recover_cycle!(
             if let result = input.parse::<T>() => {
                 collection.push(result?);
             }
@@ -444,7 +444,7 @@ where
         let mut collection = vec![];
         while !input.is_empty() {
             let old_cursor = input.cursor();
-            try_recover!(
+            try_recover_cycle!(
                 if let result = input.parse::<T>() => {
                     collection.push(result?);
                 }

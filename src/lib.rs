@@ -173,7 +173,7 @@ mod context;
 mod error;
 mod node;
 mod parser;
-pub use context::try_emit_errors;
+pub use context::{take_errors, try_emit_errors};
 pub use node::tokens::parse_tokens_until;
 
 pub mod punctuation {
