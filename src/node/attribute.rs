@@ -1,25 +1,33 @@
-use proc_macro2::{Span, TokenStream};
-use syn::{parse::ParseStream, spanned::Spanned, token::Brace, Expr, Lit};
+use proc_macro2::TokenStream;
+use syn::{
+    parse::{discouraged::Speculative, Parse, ParseStream},
+    spanned::Spanned,
+    token::Brace,
+    Expr, Lit, Token,
+};
 
-use crate::{NodeBlock, NodeName};
+use crate::{
+    parser::recoverable::{ParseRecoverable, RecoverableContext},
+    NodeBlock, NodeName,
+};
 
+#[derive(Clone, Debug, syn_derive::ToTokens)]
+pub struct KeyedAttributeValue {
+    token_eq: Token![=],
+    value: Expr,
+}
 ///
 /// Element attribute with fixed key.
 ///
 /// Example:
 /// key=value // attribute with ident as value
 /// key // attribute without value
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct KeyedAttribute {
     /// Key of the element attribute.
     pub key: NodeName,
     /// Value of the element attribute.
-    pub value: Option<Expr>,
-    /// Source span of the attribute for error reporting.
-    ///
-    /// Note: This should cover the entire node in nightly, but is a "close
-    /// enough" approximation in stable until [Span::join] is stabilized.
-    pub span: Span,
+    pub possible_value: Option<KeyedAttributeValue>,
 }
 impl KeyedAttribute {
     ///
@@ -48,7 +56,7 @@ impl KeyedAttribute {
     ///
     /// Adapted from leptos
     pub fn value_literal_string(&self) -> Option<String> {
-        self.value.as_ref().and_then(|v| match v {
+        self.value().as_ref().and_then(|v| match v {
             Expr::Lit(l) => match &l.lit {
                 Lit::Str(s) => Some(s.value()),
                 Lit::Char(c) => Some(c.value().to_string()),
@@ -59,6 +67,9 @@ impl KeyedAttribute {
             },
             _ => None,
         })
+    }
+    pub fn value(&self) -> Option<&Expr> {
+        self.possible_value.as_ref().map(|v| &v.value)
     }
 
     // Checks if error is about eof.
@@ -82,7 +93,7 @@ impl KeyedAttribute {
 /// Sum type for Dyn and Keyed attributes.
 ///
 /// Attributes is stored in opening tags.
-#[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
+#[derive(Clone, Debug, syn_derive::ToTokens)]
 pub enum NodeAttribute {
     ///
     /// Element attribute that is computed from rust code block.
@@ -90,7 +101,53 @@ pub enum NodeAttribute {
     /// Example:
     /// {"some-fixed-key"} // attribute without value that is computed from
     /// string
-    #[parse(peek = Brace)]
     Block(NodeBlock),
     Attribute(KeyedAttribute),
+}
+
+// Use custom parse to correct error.
+impl Parse for KeyedAttribute {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let key = NodeName::parse(input)?;
+        let eq = input.parse::<Option<Token![=]>>()?;
+        let possible_value = if let Some(eq) = eq {
+            if input.is_empty() {
+                return Err(syn::Error::new(eq.span(), "missing attribute value"));
+            }
+
+            let fork = input.fork();
+            let res = fork.parse::<Expr>().map_err(|e| {
+                // if we stuck on end of input, span that is created will be call_site, so we
+                // need to correct it, in order to make it more IDE friendly.
+                if fork.is_empty() {
+                    KeyedAttribute::correct_expr_error_span(e, input)
+                } else {
+                    e
+                }
+            })?;
+
+            input.advance_to(&fork);
+            Some(KeyedAttributeValue {
+                token_eq: eq,
+                value: res,
+            })
+        } else {
+            None
+        };
+        Ok(KeyedAttribute {
+            key,
+            possible_value,
+        })
+    }
+}
+
+impl ParseRecoverable for NodeAttribute {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
+        let node = if input.peek(Brace) {
+            NodeAttribute::Block(parser.parse_recoverable(input)?)
+        } else {
+            NodeAttribute::Attribute(parser.parse_simple(input)?)
+        };
+        Some(node)
+    }
 }

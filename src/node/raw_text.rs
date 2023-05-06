@@ -7,6 +7,8 @@ use syn::{
     LitStr, Token,
 };
 
+use crate::Node;
+
 /// Raw unquoted text
 ///
 /// Use source_text to retrieve spaces from text. (Cant be used in `quote!`
@@ -53,6 +55,29 @@ impl RawText {
             self.token_stream.span().source_text()
         }
     }
+    pub fn is_empty(&self) -> bool {
+        self.token_stream.is_empty()
+    }
+
+    pub fn vec_set_context(
+        open_tag_end: Span,
+        close_tag_start: Option<Span>,
+        mut children: Vec<Node>,
+    ) -> Vec<Node> {
+        let spans: Vec<Span> = Some(open_tag_end)
+            .into_iter()
+            .chain(children.iter().map(|n| n.span()))
+            .chain(close_tag_start)
+            .collect();
+
+        for (spans, children) in spans.windows(3).zip(&mut children) {
+            match children {
+                Node::RawText(t) => t.set_tag_spans(spans[0], spans[2]),
+                _ => {}
+            }
+        }
+        children
+    }
 
     /// Trying to return best string representation available:
     /// 1. calls `to_source_text(true)`
@@ -62,20 +87,6 @@ impl RawText {
         self.to_source_text(true)
             .or_else(|| self.to_source_text(false))
             .unwrap_or_else(|| self.to_token_stream_string())
-    }
-
-    pub fn parse_terminated<F, U>(input: ParseStream, func: F) -> syn::Result<(Self, U)>
-    where
-        F: Fn(ParseStream) -> syn::Result<U>,
-    {
-        let array: (Vec<RawText>, _) = super::tokens::parse_tokens_with_ending(input, func)?;
-        debug_assert!(array.0.len() < 2);
-        let r = match &*array.0 {
-            [r, ..] => r.clone(),
-            [] => Default::default(),
-        };
-
-        Ok((r, array.1))
     }
 }
 

@@ -1,16 +1,17 @@
 //!
 //! Implementation of ToTokens and Spanned for node related structs
 
-use proc_macro2::{extra::DelimSpan, Delimiter, Punct, Span, TokenStream, TokenTree};
-use quote::{quote_spanned, ToTokens};
+use std::convert::identity;
+
+use proc_macro2::{extra::DelimSpan, Delimiter, Span, TokenStream, TokenTree};
+use proc_macro2_diagnostics::{Diagnostic, Level};
+use quote::ToTokens;
 use syn::{
     braced,
-    ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _},
-    punctuated::Punctuated,
     spanned::Spanned,
-    token::{Brace, Colon, PathSep},
-    Block, Error, Expr, ExprPath, Ident, LitStr, Path, PathSegment, Token,
+    token::Brace,
+    Block, Ident, LitStr, Token,
 };
 
 use super::{
@@ -18,167 +19,60 @@ use super::{
         token::{self, DocStart},
         CloseTag, FragmentClose, FragmentOpen, OpenTag,
     },
-    attribute::KeyedAttribute,
     raw_text::RawText,
-    Node, NodeBlock, NodeComment, NodeDoctype, NodeFragment, NodeName, NodeText,
+    Node, NodeBlock, NodeDoctype, NodeFragment,
 };
 use crate::{
-    config::{TransformBlockFn},
-    punctuation::Dash,
+    config::TransformBlockFn,
+    parser::recoverable::{ParseRecoverable, RecoverableContext},
     token::CloseTagStart,
-    NodeAttribute, NodeElement, Parser,
+    NodeAttribute, NodeElement,
 };
 
-impl ToTokens for KeyedAttribute {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let key = &self.key;
-        let value = &self.value;
-
-        // self closing
-        if let Some(value) = value {
-            tokens.extend(quote_spanned!(self.span => 
-            #key = #value ))
-        } else {
-            tokens.extend(quote_spanned!(self.span => 
-            #key ))
-        }
-    }
-}
-
-impl ToTokens for NodeBlock {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Invalid { brace, body } => {
-                brace.surround(tokens, |tokens| body.to_tokens(tokens))
-            }
-            Self::ValidBlock(b) => b.to_tokens(tokens),
-        }
-    }
-}
-
-impl Parse for NodeName {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.peek2(PathSep) {
-            Parser::node_name_punctuated_ident::<PathSep, fn(_) -> PathSep, PathSegment>(
-                input, PathSep,
-            )
-            .map(|segments| {
-                NodeName::Path(ExprPath {
-                    attrs: vec![],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments,
-                    },
-                })
-            })
-        } else if input.peek2(Colon) || input.peek2(Dash) {
-            Parser::node_name_punctuated_ident_with_alternate::<
-                Punct,
-                fn(_) -> Colon,
-                fn(_) -> Dash,
-                Ident,
-            >(input, Colon, Dash)
-            .map(NodeName::Punctuated)
-        } else if input.peek(Brace) {
-            let fork = &input.fork();
-            let value = block_expr(fork)?;
-            input.advance_to(fork);
-            Ok(NodeName::Block(value.into()))
-        } else if input.peek(Ident::peek_any) {
-            let mut segments = Punctuated::new();
-            let ident = Ident::parse_any(input)?;
-            segments.push_value(PathSegment::from(ident));
-            Ok(NodeName::Path(ExprPath {
-                attrs: vec![],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments,
-                },
-            }))
-        } else {
-            Err(input.error("invalid tag name or attribute key"))
-        }
-    }
-}
-
-impl Parse for NodeBlock {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+impl ParseRecoverable for NodeBlock {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
         let fork = input.fork();
-        let save_error_history = crate::context::is_recoverable_parser();
 
         let block = match parse_valid_block_expr(&fork) {
             Ok(value) => {
                 input.advance_to(&fork);
                 NodeBlock::ValidBlock(value.into())
             }
-            Err(_e) if save_error_history => {
-                let content;
-                NodeBlock::Invalid {
-                    brace: braced!(content in input),
-                    body: content.parse()?,
-                }
+            Err(e) if parser.config().recover_block => {
+                parser.push_diagnostic(e);
+                let try_block = || {
+                    let content;
+                    Ok(NodeBlock::Invalid {
+                        brace: braced!(content in input),
+                        body: content.parse()?,
+                    })
+                };
+                parser.save_diagnostics(try_block())?
             }
-            Err(e) => return Err(e),
+            Err(e) => {
+                parser.push_diagnostic(e);
+                return None;
+            }
         };
-        Ok(block)
+        Some(block)
     }
 }
 
-impl Parse for KeyedAttribute {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let key = NodeName::parse(input)?;
-        let eq = input.parse::<Option<Token![=]>>()?;
-        let value = if eq.is_some() {
-            if input.is_empty() {
-                return Err(Error::new(key.span(), "missing attribute value"));
-            }
-
-            let fork = input.fork();
-            let res = fork.parse::<Expr>().map_err(|e| {
-                // if we stuck on end of input, span that is created will be call_site, so we
-                // need to correct it.
-                if fork.is_empty() {
-                    KeyedAttribute::correct_expr_error_span(e, input)
-                } else {
-                    e
-                }
-            })?;
-
-            input.advance_to(&fork);
-            Some(res)
-        } else {
-            None
-        };
-
-        let span = if let Some(ref val) = value {
-            key.span().join(val.span()).unwrap_or(key.span())
-        } else {
-            key.span()
-        };
-        Ok(KeyedAttribute { key, value, span })
-    }
-}
-
-impl Parse for NodeFragment {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let tag_open = FragmentOpen::parse(input)?;
+impl ParseRecoverable for NodeFragment {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
+        let tag_open: FragmentOpen = parser.parse_simple(input)?;
 
         let is_raw = |name| crate::context::with_config(|c| c.raw_text_elements.contains(name));
 
         let (mut children, tag_close) = if is_raw("") {
             let (child, closed_tag) =
-                parse_tokens_with_ending::<TokenStream, _, _>(input, FragmentClose::parse)?;
+                parser.parse_with_ending(input, |_, t| RawText::from(t), FragmentClose::parse);
 
-            debug_assert!(child.len() < 2);
-            (
-                child.into_iter().map(|s| Node::RawText(s.into())).collect(),
-                closed_tag,
-            )
+            (vec![Node::RawText(child)], closed_tag)
         } else {
-            parse_tokens_until::<Node, _, _>(input, FragmentClose::parse)?
+            parser.parse_tokens_until::<Node, _, _>(input, FragmentClose::parse)
         };
+        let tag_close = tag_close?;
         let open_tag_end = tag_open.token_gt.span();
         let close_tag_start = tag_close.token_lt.span();
         let spans: Vec<Span> = Some(open_tag_end)
@@ -192,7 +86,7 @@ impl Parse for NodeFragment {
                 _ => {}
             }
         }
-        Ok(NodeFragment {
+        Some(NodeFragment {
             tag_open,
             children,
             tag_close,
@@ -200,16 +94,19 @@ impl Parse for NodeFragment {
     }
 }
 
-impl Parse for NodeDoctype {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let token_start = DocStart::parse(input)?;
-        let doctype_keyword = input.parse::<Ident>()?;
+impl ParseRecoverable for NodeDoctype {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
+        let token_start = parser.parse_simple::<DocStart>(input)?;
+        let doctype_keyword = parser.parse_simple::<Ident>(input)?;
         if doctype_keyword.to_string().to_lowercase() != "doctype" {
-            return Err(input.error("expected Doctype"));
+            parser.push_diagnostic(input.error("expected Doctype"));
+            return None;
         }
-        let (value, token_end) = RawText::parse_terminated(input, <Token![>]>::parse)?;
+        let (value, token_end) =
+            parser.parse_with_ending(input, |_, t| RawText::from(t), <Token![>]>::parse);
 
-        Ok(Self {
+        let token_end = token_end?;
+        Some(Self {
             token_start,
             token_doctype: doctype_keyword,
             value,
@@ -218,14 +115,32 @@ impl Parse for NodeDoctype {
     }
 }
 
-impl Parse for OpenTag {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let token_lt = input.parse::<Token![<]>()?;
-        let name = NodeName::parse(input)?;
+impl ParseRecoverable for OpenTag {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
+        let token_lt = parser.parse_simple::<Token![<]>(input)?;
+        // Found closing tag when open tag was expected
+        // keep parsing it as open tag.
+        if input.peek(Token![/]) {
+            let span = if let Ok(solidus) = input.parse::<Token![/]>() {
+                solidus.span()
+            } else {
+                token_lt.span()
+            };
+            parser.push_diagnostic(Diagnostic::spanned(
+                span,
+                Level::Error,
+                "close tag was parsed while waiting for open tag",
+            ));
+        }
+        let name = parser.parse_simple(input)?;
 
         let (attributes, end_tag) =
-            parse_tokens_with_ending::<NodeAttribute, _, _>(input, token::OpenTagEnd::parse)?;
-        Ok(OpenTag {
+            parser.parse_tokens_with_ending::<NodeAttribute, _, _>(input, token::OpenTagEnd::parse);
+
+        if end_tag.is_none() {
+            parser.push_diagnostic(Diagnostic::new(Level::Error, "expected end of tag '>'"));
+        }
+        end_tag.map(|end_tag| OpenTag {
             token_lt,
             name,
             attributes,
@@ -234,228 +149,255 @@ impl Parse for OpenTag {
     }
 }
 
-impl Parse for NodeElement {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let open_tag = OpenTag::parse(input)?;
+impl ParseRecoverable for NodeElement {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
+        let open_tag: OpenTag = parser.parse_recoverable(input)?;
         let is_known_self_closed =
             |name| crate::context::with_config(|c| c.always_self_closed_elements.contains(name));
         let is_raw = |name| crate::context::with_config(|c| c.raw_text_elements.contains(name));
 
         let tag_name_str = &*open_tag.name.to_string();
         if open_tag.is_self_closed() || is_known_self_closed(tag_name_str) {
-            return Ok(NodeElement {
+            return Some(NodeElement {
                 open_tag,
                 children: vec![],
                 close_tag: None,
             });
         }
 
-        let (mut children, close_tag) = if is_raw(tag_name_str) {
+        let (children, close_tag) = if is_raw(tag_name_str) {
             let (child, closed_tag) =
-                parse_tokens_with_ending::<TokenStream, _, _>(input, CloseTag::parse)?;
-
-            debug_assert!(child.len() < 2);
-            let child = child.into_iter().map(|s| Node::RawText(s.into())).collect();
-            (child, closed_tag)
+                parser.parse_with_ending(input, |_, t| RawText::from(t), CloseTag::parse);
+            // don't keep empty RawText
+            let children = if !child.is_empty() {
+                vec![Node::RawText(child)]
+            } else {
+                vec![]
+            };
+            (children, closed_tag)
         } else {
             // If node is not raw use any closing tag as separator, to early report about
             // invalid closing tags.
             let (children, close_tag) =
-                parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse)?;
+                parser.parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse);
 
-            let close_tag = CloseTag::parse_with_start_tag(input, close_tag)?;
+            let close_tag = close_tag
+                .map(|close_tag| CloseTag::parse_with_start_tag(input, close_tag))
+                .transpose();
+            let close_tag = parser.save_diagnostics(close_tag).and_then(identity);
+
             (children, close_tag)
         };
 
         let open_tag_end = open_tag.end_tag.token_gt.span();
-        let close_tag_start = close_tag.start_tag.token_lt.span();
-        let spans: Vec<Span> = Some(open_tag_end)
-            .into_iter()
-            .chain(children.iter().map(|n| n.span()))
-            .chain(Some(close_tag_start))
-            .collect();
-        for (spans, children) in spans.windows(3).zip(&mut children) {
-            match children {
-                Node::RawText(t) => t.set_tag_spans(spans[0], spans[2]),
-                _ => {}
+        let close_tag_start = close_tag.as_ref().map(|c| c.start_tag.token_lt.span());
+        let children = RawText::vec_set_context(open_tag_end, close_tag_start, children);
+
+        let Some(close_tag) = close_tag else {
+            let mut diagnostic = Diagnostic::spanned(open_tag.span(), Level::Error, "open tag has no coresponding close tag");
+            if !children.is_empty() {
+                let mut note_span = TokenStream::new();
+                children.iter().for_each(|v|v.to_tokens(&mut note_span));
+                diagnostic = diagnostic
+                                .span_note(note_span.span(), "treating all inputs after open tag as it content");
             }
-        }
+
+            parser.push_diagnostic(diagnostic);
+            return Some(NodeElement {
+                open_tag,
+                children: children,
+                close_tag: None,
+            });
+        };
 
         if close_tag.name != open_tag.name {
-            try_recover_from_error(Error::new(
-                close_tag.span(),
-                "close tag has no coresponding open tag",
-            ))?;
-        }
+            let diagnostic =
+                Diagnostic::spanned(close_tag.span(), Level::Error, "wrong close tag found")
+                    .spanned_child(
+                        open_tag.span(),
+                        Level::Help,
+                        "open tag that should be closed started there",
+                    );
 
-        Ok(NodeElement {
+            parser.push_diagnostic(diagnostic)
+        }
+        let element = NodeElement {
             open_tag,
             children,
             close_tag: Some(close_tag),
-        })
+        };
+        Some(element)
     }
 }
 
-impl Parse for Node {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+impl ParseRecoverable for Node {
+    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
         let node = if input.peek(Token![<]) {
             if input.peek2(Token![!]) {
                 if input.peek3(Ident) {
-                    Node::Doctype(NodeDoctype::parse(input)?)
+                    Node::Doctype(parser.parse_recoverable(input)?)
                 } else {
-                    Node::Comment(NodeComment::parse(input)?)
+                    Node::Comment(parser.parse_simple(input)?)
                 }
             } else if input.peek2(Token![>]) {
-                Node::Fragment(NodeFragment::parse(input)?)
+                Node::Fragment(parser.parse_recoverable(input)?)
             } else {
-                Node::Element(NodeElement::parse(input)?)
+                Node::Element(parser.parse_recoverable(input)?)
             }
         } else if input.peek(Brace) {
-            Node::Block(NodeBlock::parse(input)?)
+            Node::Block(parser.parse_recoverable(input)?)
         } else if input.peek(LitStr) {
-            Node::Text(NodeText::parse(input)?)
+            Node::Text(parser.parse_simple(input)?)
+        } else if !input.is_empty() {
+            // Parse any input except of any other Node starting
+            Node::RawText(parser.parse_simple(input)?)
         } else {
-            Node::RawText(RawText::parse(input)?)
+            return None;
         };
-        Ok(node.into())
+        Some(node)
     }
 }
 
-/// push error if parser is recoverable, or return it if not
-fn try_recover_from_error(error: syn::Error) -> syn::Result<()> {
-    if crate::context::is_recoverable_parser() {
-        crate::context::push_error(error);
-        Ok(())
-    } else {
-        Err(error)
-    }
-}
-
-/// Recoverable parsing. Use in cycle.
-/// Checks if $parsing is failing.
-/// If error - save it to array.
-/// Prevent infinite cycling by checking that cursor is mooving.
-macro_rules! try_recover_cycle {
-    (if let $binding:ident = $parsing:expr => $f:block
-     break if $old_cursor:ident == $input:ident.cursor() ) => {
-        let save_error_history = $crate::context::is_recoverable_parser();
-        match $parsing {
-            Err(e) if save_error_history => $crate::context::push_error(e),
-            $binding => $f,
-        };
-
-        if $old_cursor == $input.cursor() {
-            return Err($input.error("Unexpected eof, or cannot parse input as node"));
-        }
-    };
-}
-/// Parse array of toknes that is seperated by spaces(tabs, or new lines).
-/// Stop parsing array when other branch could parse anything.
-///
-/// Example:
-/// ```no_run
-/// # use syn::{parse::{Parser, ParseStream}, Ident, Result, parse_macro_input, Token};
-/// # use syn_rsx::{parse_tokens_until};
-/// # fn main() -> syn::Result<()>{
-/// let tokens:proc_macro2::TokenStream = quote::quote!(few idents seperated by spaces and then minus sign - that will stop parsing).into();
-/// let concat_idents_without_minus = |input: ParseStream| -> Result<String> {
-///     let (idents, _minus) = parse_tokens_until::<Ident, _, _>(input, |i|
-///         i.parse::<Token![-]>()
-///     )?;
-///     let mut new_str = String::new();
-///     for ident in idents {
-///         new_str.push_str(&ident.to_string())
-///     }
-///     // .. skip rest idents in input
-/// #    while !input.is_empty() {
-/// #        input.parse::<Ident>()?;
-/// #    }
-///     Ok(new_str)
-/// };
-/// let concated = concat_idents_without_minus.parse2(tokens)?;
-/// assert_eq!(concated, "fewidentsseperatedbyspacesandthenminussign");
-/// # Ok(())
-/// # }
-/// ```
-pub fn parse_tokens_until<T, F, U>(input: ParseStream, stop: F) -> syn::Result<(Vec<T>, U)>
-where
-    T: Parse + std::fmt::Debug,
-    F: Fn(ParseStream) -> syn::Result<U>,
-{
-    let mut collection = vec![];
-    let res = loop {
-        let old_cursor = input.cursor();
-        let fork = input.fork();
-        if let Ok(res) = stop(&fork) {
-            input.advance_to(&fork);
-            break res;
-        }
-        try_recover_cycle!(
-            if let result = input.parse::<T>() => {
-                collection.push(result?);
-            }
-            break if old_cursor == input.cursor()
-        );
-    };
-    Ok((collection, res))
-}
-
-/// Two-phase parsing, firstly find separator, and then parse array of tokens
-/// before separator. For simple inputs method work like `parse_tokens_until`,
-/// but it creates intermediate TokenStream and copy of all tokens until
-/// separator token is found. It is usefull when separator (or it's part) can be
-/// treated as part of token T.
-///
-///
-/// Example:
-/// ```no_build
-/// let tokens = quote!(some_expr_seperated + with - lt_gt * tokens <> other part);
-/// ```
-/// In this example "<" can can be parsed as part of expression, but we want to
-/// split tokens after "<>" was found. So instead of parsing all input as
-/// expression, firstly we need to seperate it into two chunks.
-pub fn parse_tokens_with_ending<T, F, U>(
-    input: ParseStream,
-    separator: F,
-) -> syn::Result<(Vec<T>, U)>
-where
-    T: Parse + std::fmt::Debug,
-    F: Fn(ParseStream) -> syn::Result<U>,
-{
-    let mut tokens = TokenStream::new();
-    let res = loop {
-        // we still use fork there, to allow parsing expressions in attributes, like
-        // foo=x/y
-        let fork = input.fork();
-        if let Ok(end) = separator(&fork) {
-            input.advance_to(&fork);
-            break end;
-        }
-
-        if input.is_empty() {
-            return Err(input.error("expected closing caret >")); // TODO: fix text
-        }
-
-        let next: TokenTree = input.parse()?;
-        tokens.extend([next]);
-    };
-
-    let parser = |input: ParseStream| {
+impl RecoverableContext {
+    /// Parse array of toknes that is seperated by spaces(tabs, or new lines).
+    /// Stop parsing array when other branch could parse anything.
+    ///
+    /// Example:
+    /// ```no_build
+    /// # use syn::{parse::{Parser, ParseStream}, Ident, Result, parse_macro_input, Token};
+    /// # use syn_rsx::{parse_tokens_until};
+    /// # fn main() -> syn::Result<()>{
+    /// let tokens:proc_macro2::TokenStream = quote::quote!(few idents seperated by spaces and then minus sign - that will stop parsing).into();
+    /// let concat_idents_without_minus = |input: ParseStream| -> Result<String> {
+    ///     let (idents, _minus) = parser.parse_tokens_until::<Ident, _, _>(input, |i|
+    ///         i.parse::<Token![-]>()
+    ///     )?;
+    ///     let mut new_str = String::new();
+    ///     for ident in idents {
+    ///         new_str.push_str(&ident.to_string())
+    ///     }
+    ///     // .. skip rest idents in input
+    /// #    while !input.is_empty() {
+    /// #        input.parse::<Ident>()?;
+    /// #    }
+    ///     Ok(new_str)
+    /// };
+    /// let concated = concat_idents_without_minus.parse2(tokens)?;
+    /// assert_eq!(concated, "fewidentsseperatedbyspacesandthenminussign");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn parse_tokens_until<T, F, U>(
+        &mut self,
+        input: ParseStream,
+        stop: F,
+    ) -> (Vec<T>, Option<U>)
+    where
+        T: ParseRecoverable + std::fmt::Debug + Spanned,
+        F: Fn(ParseStream) -> syn::Result<U>,
+    {
         let mut collection = vec![];
-        while !input.is_empty() {
+        let res = loop {
             let old_cursor = input.cursor();
-            try_recover_cycle!(
-                if let result = input.parse::<T>() => {
-                    collection.push(result?);
-                }
-                break if old_cursor == input.cursor()
-            );
-        }
+            let fork = input.fork();
+            if let Ok(res) = stop(&fork) {
+                input.advance_to(&fork);
+                break Some(res);
+            }
+            if let Some(o) = self.parse_recoverable(input) {
+                collection.push(o)
+            }
 
-        Ok(collection)
-    };
-    let collection = parser.parse2(tokens)?;
-    Ok((collection, res))
+            if old_cursor == input.cursor() {
+                break None;
+            }
+        };
+        (collection, res)
+    }
+    /// Two-phase parsing, firstly find separator, and then parse array of
+    /// tokens before separator. For simple inputs method work like
+    /// `parse_tokens_until`, but it creates intermediate TokenStream and
+    /// copy of all tokens until separator token is found. It is usefull
+    /// when separator (or it's part) can be treated as part of token T.
+    ///
+    ///
+    /// Example:
+    /// ```no_build
+    /// let tokens = quote!(some_expr_seperated + with - lt_gt * tokens <> other part);
+    /// ```
+    /// In this example "<" can can be parsed as part of expression, but we want
+    /// to split tokens after "<>" was found. So instead of parsing all
+    /// input as expression, firstly we need to seperate it into two chunks.
+    pub fn parse_tokens_with_ending<T, F, U>(
+        &mut self,
+        input: ParseStream,
+        separator: F,
+    ) -> (Vec<T>, Option<U>)
+    where
+        T: ParseRecoverable + std::fmt::Debug,
+        F: Fn(ParseStream) -> syn::Result<U>,
+    {
+        let parser = |parser: &mut Self, tokens: TokenStream| {
+            let parse = |input: ParseStream| {
+                let mut collection = vec![];
+
+                while !input.is_empty() {
+                    let old_cursor = input.cursor();
+                    if let Some(o) = parser.parse_recoverable(input) {
+                        collection.push(o)
+                    }
+                    if old_cursor == input.cursor() {
+                        break;
+                    }
+                }
+                let eated_tokens = input.parse::<TokenStream>()?;
+                Ok((collection, eated_tokens))
+            };
+            let (collection, eaten_tokens) = parse.parse2(tokens).expect("No errors allowed");
+            if !eaten_tokens.is_empty() {
+                parser.push_diagnostic(Diagnostic::spanned(
+                    eaten_tokens.span(),
+                    Level::Error,
+                    "tokens was ignored during parsing",
+                ))
+            }
+            collection
+        };
+        self.parse_with_ending(input, parser, separator)
+    }
+
+    pub fn parse_with_ending<F, CNV, V, U>(
+        &mut self,
+        input: ParseStream,
+        parser: CNV,
+        ending: F,
+    ) -> (V, Option<U>)
+    where
+        F: Fn(ParseStream) -> syn::Result<U>,
+        CNV: Fn(&mut Self, TokenStream) -> V,
+    {
+        let mut tokens = TokenStream::new();
+        let res = loop {
+            // Use fork, because we can't limit separator to be only Peekable for custom
+            // tokens but we also need to parse complex expressions like
+            // "foo=x/y" or "/>"
+            let fork = input.fork();
+            if let Ok(end) = ending(&fork) {
+                input.advance_to(&fork);
+                break Some(end);
+            }
+
+            if input.is_empty() {
+                break None;
+            }
+
+            let next: TokenTree = self
+                .parse_simple(input)
+                .expect("TokenTree should always be parsable");
+            tokens.extend([next]);
+        };
+        (parser(self, tokens), res)
+    }
 }
 
 // This method couldn't be const generic until https://github.com/rust-lang/rust/issues/63569
@@ -522,7 +464,7 @@ fn block_expr_with_extern_span(input: ParseStream, span: DelimSpan) -> syn::Resu
 }
 
 /// Parse the given stream as [`Expr::Block`].
-fn block_expr(input: syn::parse::ParseStream) -> syn::Result<Block> {
+pub(crate) fn block_expr(input: syn::parse::ParseStream) -> syn::Result<Block> {
     let content;
     let brace_token = braced!(content in input);
     Ok(Block {

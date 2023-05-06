@@ -4,19 +4,18 @@ use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Block;
-use syn_rsx::{
-    parse2, parse2_with_config, EmitError, Node, NodeAttribute, NodeBlock,
-    ParserConfig,
-};
+use syn_rsx::{Node, NodeAttribute, NodeBlock, Parser, ParserConfig};
 
 #[test]
 fn test_recover_incorrect_closing_tags() {
     let stream = quote!(<div><open></close><foo></foo></div>);
-    // by default parse return error
-    parse2(stream.clone()).unwrap_err();
 
-    let config = ParserConfig::new().emit_errors(EmitError::All);
-    let nodes = parse2_with_config(stream, config).unwrap();
+    let config = ParserConfig::new().recover_block(true);
+    let parser = Parser::new(config);
+    // by default parse return error
+    assert!(parser.parse_simple(stream.clone()).is_err());
+
+    let (nodes, _errors) = parser.parse_recoverable(stream).split_vec();
     assert_eq!(nodes.len(), 1);
     let Node::Element(e) = &nodes[0] else {
         panic!("Not element")
@@ -41,11 +40,8 @@ fn test_parse_invalid_block() -> Result<()> {
         "<foo>{x.}</foo>", // dot is not allowed
     )
     .unwrap();
-    let config = ParserConfig::new().emit_errors(syn_rsx::EmitError::All);
-    let nodes = parse2_with_config(tokens, config)?;
-
-    // syn_rsx only expose api for emiting errors in token_stream
-    let errors = syn_rsx::try_emit_errors(TokenStream::new());
+    let config = ParserConfig::new().recover_block(true);
+    let (nodes, errors) = Parser::new(config).parse_recoverable(tokens).split_vec();
     assert!(!errors.is_empty());
 
     let Node::Block(block) = &nodes[0].children().unwrap()[0] else { panic!("expected block") };
@@ -62,11 +58,9 @@ fn test_parse_invalid_attr_block() -> Result<()> {
         "<foo {x.} />", // dot is not allowed
     )
     .unwrap();
-    let config = ParserConfig::new().emit_errors(syn_rsx::EmitError::All);
-    let nodes = parse2_with_config(tokens, config)?;
+    let config = ParserConfig::new().recover_block(true);
+    let (nodes, errors) = Parser::new(config).parse_recoverable(tokens).split_vec();
 
-    // syn_rsx only expose api for emiting errors in token_stream
-    let errors = syn_rsx::try_emit_errors(TokenStream::new());
     assert!(!errors.is_empty());
 
     let Node::Element(f) = &nodes[0] else { panic!("expected element") };

@@ -163,18 +163,13 @@
 
 extern crate proc_macro;
 
-use syn::{
-    parse::{ParseStream, Parser as _},
-    Result,
-};
+use syn::Result;
 
 mod config;
 mod context;
 mod error;
 mod node;
 mod parser;
-pub use context::{take_errors, try_emit_errors};
-pub use node::tokens::parse_tokens_until;
 
 pub mod punctuation {
     //! Custom syn punctuations
@@ -183,19 +178,18 @@ pub mod punctuation {
     custom_punctuation!(Dash, -);
 }
 
-pub use config::{EmitError, ParserConfig};
+pub use config::ParserConfig;
 pub use error::Error;
 pub use node::*;
 pub use parser::Parser;
+pub use parser::recoverable::{ParseRecoverable, ParsingResult, Recoverable};
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree.
 ///
 /// [`proc-macro::TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 /// [`Node`]: struct.Node.html
 pub fn parse(tokens: proc_macro::TokenStream) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| Parser::new(ParserConfig::default()).parse(input);
-
-    parser.parse(tokens)
+    Parser::new(ParserConfig::default()).parse_simple(tokens)
 }
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree with custom
@@ -208,19 +202,11 @@ pub fn parse_with_config(
     tokens: proc_macro::TokenStream,
     config: ParserConfig,
 ) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| Parser::new(config).parse(input);
-
-    parser.parse(tokens)
+    Parser::new(config).parse_simple(tokens)
 }
 
-/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree.
-///
-/// [`proc-macro2::TokenStream`]: https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html
-/// [`Node`]: struct.Node.html
 pub fn parse2(tokens: proc_macro2::TokenStream) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| Parser::new(ParserConfig::default()).parse(input);
-
-    parser.parse2(tokens)
+    Parser::new(ParserConfig::default()).parse_simple(tokens)
 }
 
 /// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree with
@@ -233,7 +219,5 @@ pub fn parse2_with_config(
     tokens: proc_macro2::TokenStream,
     config: ParserConfig,
 ) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| Parser::new(config).parse(input);
-
-    parser.parse2(tokens)
+    Parser::new(config).parse_simple(tokens)
 }

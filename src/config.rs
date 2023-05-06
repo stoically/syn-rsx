@@ -1,4 +1,4 @@
-use std::{collections::HashSet, rc::Rc};
+use std::{collections::HashSet, fmt::Debug, rc::Rc};
 
 use proc_macro2::TokenStream;
 use syn::{parse::ParseStream, Result};
@@ -14,24 +14,24 @@ pub struct ParserConfig {
     pub(crate) number_of_top_level_nodes: Option<usize>,
     pub(crate) type_of_top_level_nodes: Option<NodeType>,
     pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
-    pub(crate) emit_errors: EmitError,
+    pub(crate) recover_block: bool,
     pub(crate) always_self_closed_elements: HashSet<&'static str>,
     pub(crate) raw_text_elements: HashSet<&'static str>,
 }
 
-/// How parsing error should be emitted.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EmitError {
-    /// Whenever first error is received.
-    First,
-    /// Try to recover after invalid parsing.
-    /// The end user of library should then process them.
-    All,
-}
-
-impl Default for EmitError {
-    fn default() -> Self {
-        EmitError::First
+impl Debug for ParserConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ParserConfig")
+            .field("flat_tree", &self.flat_tree)
+            .field("number_of_top_level_nodes", &self.number_of_top_level_nodes)
+            .field("type_of_top_level_nodes", &self.type_of_top_level_nodes)
+            .field("recover_block", &self.recover_block)
+            .field(
+                "always_self_closed_elements",
+                &self.always_self_closed_elements,
+            )
+            .field("raw_text_elements", &self.raw_text_elements)
+            .finish()
     }
 }
 
@@ -59,9 +59,9 @@ impl ParserConfig {
         self
     }
 
-    /// Change behaviour of emitting errors
-    pub fn emit_errors(mut self, emit_errors: EmitError) -> Self {
-        self.emit_errors = emit_errors;
+    /// Try to parse invalid syn::Block
+    pub fn recover_block(mut self, recover_block: bool) -> Self {
+        self.recover_block = recover_block;
         self
     }
 

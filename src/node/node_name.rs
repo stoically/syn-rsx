@@ -2,12 +2,15 @@ use std::{convert::TryFrom, fmt};
 
 use proc_macro2::Punct;
 use syn::{
+    ext::IdentExt,
+    parse::{discouraged::Speculative, Parse},
     punctuated::{Pair, Punctuated},
-    Block, ExprPath, Ident,
+    token::{Brace, Colon, PathSep},
+    Block, ExprPath, Ident, Path, PathSegment,
 };
 
 use super::path_to_string;
-use crate::Error;
+use crate::{punctuation::Dash, tokens::block_expr, Error, Parser};
 
 /// Name of the node.
 #[derive(Clone, Debug, syn_derive::ToTokens)]
@@ -91,5 +94,52 @@ impl fmt::Display for NodeName {
                 NodeName::Block(_) => String::from("{}"),
             }
         )
+    }
+}
+
+impl Parse for NodeName {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        if input.peek2(PathSep) {
+            Parser::node_name_punctuated_ident::<PathSep, fn(_) -> PathSep, PathSegment>(
+                input, PathSep,
+            )
+            .map(|segments| {
+                NodeName::Path(ExprPath {
+                    attrs: vec![],
+                    qself: None,
+                    path: Path {
+                        leading_colon: None,
+                        segments,
+                    },
+                })
+            })
+        } else if input.peek2(Colon) || input.peek2(Dash) {
+            Parser::node_name_punctuated_ident_with_alternate::<
+                Punct,
+                fn(_) -> Colon,
+                fn(_) -> Dash,
+                Ident,
+            >(input, Colon, Dash)
+            .map(NodeName::Punctuated)
+        } else if input.peek(Brace) {
+            let fork = &input.fork();
+            let value = block_expr(fork)?;
+            input.advance_to(fork);
+            Ok(NodeName::Block(value.into()))
+        } else if input.peek(Ident::peek_any) {
+            let mut segments = Punctuated::new();
+            let ident = Ident::parse_any(input)?;
+            segments.push_value(PathSegment::from(ident));
+            Ok(NodeName::Path(ExprPath {
+                attrs: vec![],
+                qself: None,
+                path: Path {
+                    leading_colon: None,
+                    segments,
+                },
+            }))
+        } else {
+            Err(input.error("invalid tag name or attribute key"))
+        }
     }
 }

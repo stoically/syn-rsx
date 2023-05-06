@@ -3,6 +3,7 @@
 use std::convert::TryFrom;
 
 use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::{token::Brace, Block};
 
 /// Block node.
@@ -53,6 +54,17 @@ impl TryFrom<NodeBlock> for Block {
                 v,
                 "Cant parse expression as block.",
             )),
+        }
+    }
+}
+
+impl ToTokens for NodeBlock {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Invalid { brace, body } => {
+                brace.surround(tokens, |tokens| body.to_tokens(tokens))
+            }
+            Self::ValidBlock(b) => b.to_tokens(tokens),
         }
     }
 }
