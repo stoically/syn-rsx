@@ -166,7 +166,6 @@ extern crate proc_macro;
 use syn::Result;
 
 mod config;
-mod context;
 mod error;
 mod node;
 mod parser;
@@ -181,8 +180,10 @@ pub mod punctuation {
 pub use config::ParserConfig;
 pub use error::Error;
 pub use node::*;
-pub use parser::Parser;
-pub use parser::recoverable::{ParseRecoverable, ParsingResult, Recoverable};
+pub use parser::{
+    recoverable::{ParseRecoverable, ParsingResult, Recoverable},
+    Parser,
+};
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree.
 ///

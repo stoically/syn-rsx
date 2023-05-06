@@ -1,12 +1,35 @@
+use std::{collections::HashSet, fmt::Debug, rc::Rc};
+
 use proc_macro2_diagnostics::{Diagnostic, Level};
 use syn::parse::{Parse, ParseStream};
 
-#[derive(Debug, Default)]
+use crate::config::TransformBlockFn;
+
+#[derive(Default)]
 pub struct RecoveryConfig {
     ///
     /// Try to parse invalid syn::Block as something.
     /// Usefull to make expressions more IDE-friendly.
     pub(crate) recover_block: bool,
+    /// elements that has no child and is always self closed like <img> and <br>
+    pub(crate) always_self_closed_elements: HashSet<&'static str>,
+    /// Elements like <script> <style>, context of which is not a valid html,
+    /// and should be provided as is.
+    pub(crate) raw_text_elements: HashSet<&'static str>,
+    pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
+}
+
+impl Debug for RecoveryConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RecoveryConfig")
+            .field("recover_block", &self.recover_block)
+            .field(
+                "always_self_closed_elements",
+                &self.always_self_closed_elements,
+            )
+            .field("raw_text_elements", &self.raw_text_elements)
+            .finish()
+    }
 }
 
 #[derive(Debug, Default)]

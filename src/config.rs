@@ -59,17 +59,27 @@ impl ParserConfig {
         self
     }
 
-    /// Try to parse invalid syn::Block
+    /// Try to parse invalid `syn::Block`.
+    /// If set tot true, `NodeBlock` can return `Invalid` variant.
+    ///
+    /// If `NodeBlock` is failed to parse as `syn::Block`
+    /// it still usefull to emit it as expression.
+    /// It will enhance IDE compatibility, and provide completion in cases of
+    /// invalid blocks, for example `{x.}` is invalid expression, because
+    /// after dot token `}` is unexpected. But for ide it is a marker that
+    /// quick completion should be provided.
     pub fn recover_block(mut self, recover_block: bool) -> Self {
         self.recover_block = recover_block;
         self
     }
 
     /// Set array of nodes that is known to be self closed,
+    /// it also known as void element.
+    /// Void elements has no child and must not have closing tag.
     /// Parser will not search for it closing tag,
-    /// even if no solidus at end of it open part was found.
+    /// even if no slash at end of it open part was found.
     ///
-    /// Because it is constants, we expect it as 'static refs.
+    /// Because we work in proc-macro context, we expect it as 'static refs.
     ///
     /// Examples:
     /// <br> <link> <img>

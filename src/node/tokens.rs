@@ -33,7 +33,7 @@ impl ParseRecoverable for NodeBlock {
     fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
         let fork = input.fork();
 
-        let block = match parse_valid_block_expr(&fork) {
+        let block = match parse_valid_block_expr(parser, &fork) {
             Ok(value) => {
                 input.advance_to(&fork);
                 NodeBlock::ValidBlock(value.into())
@@ -62,7 +62,7 @@ impl ParseRecoverable for NodeFragment {
     fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
         let tag_open: FragmentOpen = parser.parse_simple(input)?;
 
-        let is_raw = |name| crate::context::with_config(|c| c.raw_text_elements.contains(name));
+        let is_raw = |name| parser.config().raw_text_elements.contains(name);
 
         let (mut children, tag_close) = if is_raw("") {
             let (child, closed_tag) =
@@ -153,8 +153,8 @@ impl ParseRecoverable for NodeElement {
     fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
         let open_tag: OpenTag = parser.parse_recoverable(input)?;
         let is_known_self_closed =
-            |name| crate::context::with_config(|c| c.always_self_closed_elements.contains(name));
-        let is_raw = |name| crate::context::with_config(|c| c.raw_text_elements.contains(name));
+            |name| parser.config().always_self_closed_elements.contains(name);
+        let is_raw = |name| parser.config().raw_text_elements.contains(name);
 
         let tag_name_str = &*open_tag.name.to_string();
         if open_tag.is_self_closed() || is_known_self_closed(tag_name_str) {
@@ -446,8 +446,11 @@ fn block_transform(input: ParseStream, transform_fn: &TransformBlockFn) -> syn::
     })
 }
 
-fn parse_valid_block_expr(input: syn::parse::ParseStream) -> syn::Result<Block> {
-    let transform_block = crate::context::with_config(|c| c.transform_block.clone());
+fn parse_valid_block_expr(
+    parser: &mut RecoverableContext,
+    input: syn::parse::ParseStream,
+) -> syn::Result<Block> {
+    let transform_block = parser.config().transform_block.clone();
     let value = if let Some(transform_fn) = transform_block {
         block_transform(input, &*transform_fn)?
     } else {

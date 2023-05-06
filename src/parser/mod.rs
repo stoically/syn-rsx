@@ -50,9 +50,11 @@ impl Parser {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
 
-        let _context = crate::context::Context::new_from_config(self.config.clone());
         let mut parser = RecoverableContext::new(RecoveryConfig {
             recover_block: self.config.recover_block,
+            raw_text_elements: self.config.raw_text_elements.clone(),
+            always_self_closed_elements: self.config.always_self_closed_elements.clone(),
+            transform_block: self.config.transform_block.clone(),
         });
         while !input.cursor().eof() {
             let Some(parsed_node) = Node::parse_recoverable(&mut parser, input) else {
