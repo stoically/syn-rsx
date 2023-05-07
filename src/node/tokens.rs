@@ -68,15 +68,19 @@ impl ParseRecoverable for NodeFragment {
 
             (vec![Node::RawText(child)], closed_tag)
         } else {
-            let (child, close_tag_start) = parser.parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse);
-            (child, FragmentClose::parse_with_start_tag(parser, input, close_tag_start))
+            let (child, close_tag_start) =
+                parser.parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse);
+            (
+                child,
+                FragmentClose::parse_with_start_tag(parser, input, close_tag_start),
+            )
         };
         let tag_close = tag_close;
         let open_tag_end = tag_open.token_gt.span();
-        let close_tag_start = tag_close.as_ref().map(|v|v.start_tag.token_lt.span());
+        let close_tag_start = tag_close.as_ref().map(|v| v.start_tag.token_lt.span());
 
         let children = RawText::vec_set_context(open_tag_end, close_tag_start, children);
-        
+
         Some(NodeFragment {
             tag_open,
             children,
@@ -90,7 +94,11 @@ impl ParseRecoverable for NodeDoctype {
         let token_start = parser.parse_simple::<DocStart>(input)?;
         let doctype_keyword = parser.parse_simple::<Ident>(input)?;
         if doctype_keyword.to_string().to_lowercase() != "doctype" {
-            parser.push_diagnostic(Diagnostic::spanned(doctype_keyword.span(), Level::Error, "expected DOCTYPE keyword"));
+            parser.push_diagnostic(Diagnostic::spanned(
+                doctype_keyword.span(),
+                Level::Error,
+                "expected DOCTYPE keyword",
+            ));
             return None;
         }
         let (value, token_end) =
@@ -173,7 +181,7 @@ impl ParseRecoverable for NodeElement {
             let (children, close_tag) =
                 parser.parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse);
 
-            let close_tag=  CloseTag::parse_with_start_tag(parser, input, close_tag);
+            let close_tag = CloseTag::parse_with_start_tag(parser, input, close_tag);
 
             (children, close_tag)
         };

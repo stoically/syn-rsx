@@ -9,9 +9,9 @@
 
 use proc_macro2::Ident;
 use proc_macro2_diagnostics::{Diagnostic, Level};
-use syn::{Token, ext::IdentExt};
+use syn::{ext::IdentExt, Token};
 
-use crate::{node::tokens, NodeAttribute, NodeName, parser::recoverable::RecoverableContext};
+use crate::{node::tokens, parser::recoverable::RecoverableContext, NodeAttribute, NodeName};
 
 pub mod token {
     use syn::Token;
@@ -81,7 +81,6 @@ pub struct FragmentClose {
     pub token_gt: Token![>],
 }
 
-
 impl FragmentClose {
     pub fn parse_with_start_tag(
         parser: &mut RecoverableContext,
@@ -91,7 +90,11 @@ impl FragmentClose {
         let start_tag = start_tag?;
         if input.peek(Ident::peek_any) {
             let ident_from_invalid_closing = Ident::parse_any(input).expect("parse after peek");
-            parser.push_diagnostic(Diagnostic::spanned(ident_from_invalid_closing.span(), Level::Error, "expected fragment closing, found element closing tag"));
+            parser.push_diagnostic(Diagnostic::spanned(
+                ident_from_invalid_closing.span(),
+                Level::Error,
+                "expected fragment closing, found element closing tag",
+            ));
         };
         Some(Self {
             start_tag,
@@ -99,7 +102,6 @@ impl FragmentClose {
         })
     }
 }
-
 
 /// Open tag for element, possibly self-closed.
 /// <name attr=x, attr_flag>
@@ -135,7 +137,7 @@ impl CloseTag {
         Some(Self {
             start_tag: start_tag?,
             name: parser.save_diagnostics(input.parse())?,
-            token_gt:  parser.save_diagnostics(input.parse())?,
+            token_gt: parser.save_diagnostics(input.parse())?,
         })
     }
 }

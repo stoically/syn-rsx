@@ -8,7 +8,8 @@ use syn::{
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Peek},
     punctuated::Punctuated,
-    Ident, Result, spanned::Spanned,
+    spanned::Spanned,
+    Ident, Result,
 };
 
 pub mod recoverable;
@@ -81,8 +82,14 @@ impl Parser {
 
         // its important to skip tokens, to avoid Unexpected tokens errors.
         if !input.is_empty() {
-            let tts = input.parse::<TokenStream>().expect("No error in parsing token stream");
-            parser.push_diagnostic(Diagnostic::spanned(tts.span(), proc_macro2_diagnostics::Level::Error, "Tokens was skipped after incorrect parsing"));
+            let tts = input
+                .parse::<TokenStream>()
+                .expect("No error in parsing token stream");
+            parser.push_diagnostic(Diagnostic::spanned(
+                tts.span(),
+                proc_macro2_diagnostics::Level::Error,
+                "Tokens was skipped after incorrect parsing",
+            ));
         }
 
         if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {

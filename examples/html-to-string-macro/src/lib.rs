@@ -26,9 +26,7 @@ impl<'a> WalkNodesOutput<'a> {
     }
 }
 
-fn walk_nodes<'a>(
-    nodes: &'a Vec<Node>,
-) -> WalkNodesOutput<'a> {
+fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> WalkNodesOutput<'a> {
     let mut out = WalkNodesOutput::default();
 
     for node in nodes {
@@ -55,7 +53,8 @@ fn walk_nodes<'a>(
                             out.values.push(block.to_token_stream());
                         }
                         NodeAttribute::Attribute(attribute) => {
-                            out.static_format.push_str(&format!(" {}", attribute.key.to_string()));
+                            out.static_format
+                                .push_str(&format!(" {}", attribute.key.to_string()));
                             if let Some(value) = attribute.value() {
                                 out.static_format.push_str(r#"="{}""#);
                                 out.values.push(value.to_token_stream());
@@ -63,13 +62,14 @@ fn walk_nodes<'a>(
                         }
                     }
                 }
-                // In HTML selfclosing slash is ignored but for embeded SVG or MathML it meaningfull.
-                if element.open_tag.is_self_closed(){
+                // In HTML selfclosing slash is ignored but for embeded SVG or MathML it
+                // meaningfull.
+                if element.open_tag.is_self_closed() {
                     out.static_format.push('/');
                 }
                 out.static_format.push('>');
 
-                // skip emiting childs if 
+                // skip emiting childs if
                 //  - no closing tag (self closed, or self closed without marker)
                 //  - but element is valid and no childs left
                 if element.close_tag.is_none() && element.children.is_empty() {
@@ -77,8 +77,7 @@ fn walk_nodes<'a>(
                 }
 
                 // children
-                let other_output =
-                    walk_nodes(&element.children);
+                let other_output = walk_nodes(&element.children);
                 out.extend(other_output);
                 out.static_format.push_str(&format!("</{}>", name));
             }
@@ -94,8 +93,7 @@ fn walk_nodes<'a>(
                 out.values.push(TokenTree::from(literal).into());
             }
             Node::Fragment(fragment) => {
-                let other_output =
-                    walk_nodes(&fragment.children);
+                let other_output = walk_nodes(&fragment.children);
                 out.extend(other_output)
             }
             Node::Comment(comment) => {
@@ -123,21 +121,22 @@ fn walk_nodes<'a>(
 ///
 /// ```
 /// use html_to_string_macro::html;
-/// // using this macro, one should write docs to link html tags to them.
+/// // using this macro, one should write docs module on top level of crate.
+/// // Macro will link html tags to them.
 /// pub mod docs {
 ///     /// Element has open and close tags, content and attributes.
 ///     pub fn element() {}
 /// }
-/// 
+/// # fn main (){
 ///
 /// let world = "planet";
 /// assert_eq!(html!(<div>"hello "{world}</div>), "<div>hello planet</div>");
+/// # }
 /// ```
 #[proc_macro]
 pub fn html(tokens: TokenStream) -> TokenStream {
     let config = ParserConfig::new()
         .recover_block(true)
-
         // https://developer.mozilla.org/en-US/docs/Glossary/Empty_element
         .always_self_closed_elements(
             [
@@ -154,7 +153,11 @@ pub fn html(tokens: TokenStream) -> TokenStream {
     let parser = Parser::new(config);
     let (nodes, errors) = parser.parse_recoverable(tokens).split_vec();
 
-    let WalkNodesOutput{static_format:html_string, values, collected_elements: elements} = walk_nodes(&nodes);
+    let WalkNodesOutput {
+        static_format: html_string,
+        values,
+        collected_elements: elements,
+    } = walk_nodes(&nodes);
     let docs = generate_tags_docs(elements);
     let errors = errors.into_iter().map(|e| e.emit_as_expr_tokens());
     quote! {
@@ -173,7 +176,9 @@ fn generate_tags_docs(elements: Vec<&NodeName>) -> Vec<proc_macro2::TokenStream>
     // Mark some of elements as type,
     // and other as elements as fn in crate::docs,
     // to give an example how to link tag with docs.
-    let elements_as_type:HashSet<&'static str> = vec!["html", "head", "meta", "link", "body"].into_iter().collect();
+    let elements_as_type: HashSet<&'static str> = vec!["html", "head", "meta", "link", "body"]
+        .into_iter()
+        .collect();
 
     elements
         .into_iter()
@@ -182,7 +187,7 @@ fn generate_tags_docs(elements: Vec<&NodeName>) -> Vec<proc_macro2::TokenStream>
                 let element = quote_spanned!(e.span() => enum);
                 quote!({#element x{}})
             } else {
-                // let _ = crate::docs::element; 
+                // let _ = crate::docs::element;
                 let element = quote_spanned!(e.span() => element);
                 quote!(let _ = crate::docs::#element)
             }

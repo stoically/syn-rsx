@@ -43,7 +43,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .into_iter()
                 .collect(),
             );
-            syn_rsx::parse2_with_config(RUST_SITE_SIMPLE.with(|tokens|tokens.clone()), config)
+            syn_rsx::parse2_with_config(RUST_SITE_SIMPLE.with(|tokens| tokens.clone()), config)
         })
     });
 }

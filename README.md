@@ -16,10 +16,7 @@ It was created because of various reasons:
 - [Unquoted text](https://github.com/stoically/syn-rsx/issues/2) feature should advance.
 
 
-In current phase, unquoted text is still in development, also during implemementation of
-lossless parsing - block transformation features was temporary removed.
-Currently this fork is focused on giving more ergonomics, especially in error handling.
-
+See [comparsion](/comparsion-with-syn-rsx.md) for more detail.
 
 ```rust
 use std::convert::TryFrom;
@@ -123,6 +120,7 @@ You might want to check out the [html-to-string-macro example] as well.
   15 | |                 "invalid node for some consumer specific reason"
   16 | |             </div>
      | |__________________^
+     
   ```
 
 - **Customization**
