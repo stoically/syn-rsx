@@ -1,5 +1,11 @@
 use html_to_string_macro::html;
 
+// Using this parser, one can write docs and link html tags to them.
+// if this macro would be independent, it would be nicer to have docs in separate crate.
+pub mod docs {
+    /// Element has open and close tags, content and attributes.
+    pub fn element() {}
+}
 #[test]
 fn test() {
     let world = "planet";
@@ -30,7 +36,7 @@ fn test() {
                 </head>
                 <body>
                     <!-- comment -->
-                    <div hello="planet"></div>
+                    <div hello="planet"/>
                     <div>1</div>
                     <div>2</div>
                     <div>3</div>

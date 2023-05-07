@@ -17,3 +17,6 @@ proc-macro2 = "1.0.47"
 quote = "1.0.21"
 syn = "2.0.15"
 syn-rsx = { path = "../../" }
+
+[dev-dependencies]
+trybuild = "1.0"

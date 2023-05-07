@@ -3,11 +3,12 @@
 use std::vec;
 
 use proc_macro2::TokenStream;
+use proc_macro2_diagnostics::Diagnostic;
 use syn::{
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Peek},
     punctuated::Punctuated,
-    Ident, Result,
+    Ident, Result, spanned::Spanned,
 };
 
 pub mod recoverable;
@@ -59,7 +60,7 @@ impl Parser {
         while !input.cursor().eof() {
             let Some(parsed_node) = Node::parse_recoverable(&mut parser, input) else {
                 parser.push_diagnostic(input.error(format!(
-                    "BUG: Node parse failed"
+                    "Node parse failed"
                 )));
                 break;
             };
@@ -76,6 +77,12 @@ impl Parser {
 
             top_level_nodes += 1;
             nodes.push(parsed_node)
+        }
+
+        // its important to skip tokens, to avoid Unexpected tokens errors.
+        if !input.is_empty() {
+            let tts = input.parse::<TokenStream>().expect("No error in parsing token stream");
+            parser.push_diagnostic(Diagnostic::spanned(tts.span(), proc_macro2_diagnostics::Level::Error, "Tokens was skipped after incorrect parsing"));
         }
 
         if let Some(number_of_top_level_nodes) = &self.config.number_of_top_level_nodes {

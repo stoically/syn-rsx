@@ -1,0 +1,5 @@
+error: open tag has no coresponding close tag
+ --> tests/ui/not_closed_tag.rs:5:13
+  |
+5 |             <html>
+  |             ^^^^^^

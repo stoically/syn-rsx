@@ -1,0 +1,11 @@
+error: unexpected end of input, expected identifier or integer
+ --> tests/ui/node_block_with_dot.rs:6:22
+  |
+6 |             {"block".}
+  |                      ^
+
+error: unexpected token: `}`
+ --> tests/ui/node_block_with_dot.rs:6:13
+  |
+6 |             {"block".}
+  |             ^^^^^^^^^^

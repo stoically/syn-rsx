@@ -1,9 +1,7 @@
 //!
 //! Implementation of ToTokens and Spanned for node related structs
 
-use std::convert::identity;
-
-use proc_macro2::{extra::DelimSpan, Delimiter, Span, TokenStream, TokenTree};
+use proc_macro2::{extra::DelimSpan, Delimiter, TokenStream, TokenTree};
 use proc_macro2_diagnostics::{Diagnostic, Level};
 use quote::ToTokens;
 use syn::{
@@ -64,28 +62,21 @@ impl ParseRecoverable for NodeFragment {
 
         let is_raw = |name| parser.config().raw_text_elements.contains(name);
 
-        let (mut children, tag_close) = if is_raw("") {
+        let (children, tag_close) = if is_raw("") {
             let (child, closed_tag) =
                 parser.parse_with_ending(input, |_, t| RawText::from(t), FragmentClose::parse);
 
             (vec![Node::RawText(child)], closed_tag)
         } else {
-            parser.parse_tokens_until::<Node, _, _>(input, FragmentClose::parse)
+            let (child, close_tag_start) = parser.parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse);
+            (child, FragmentClose::parse_with_start_tag(parser, input, close_tag_start))
         };
-        let tag_close = tag_close?;
+        let tag_close = tag_close;
         let open_tag_end = tag_open.token_gt.span();
-        let close_tag_start = tag_close.token_lt.span();
-        let spans: Vec<Span> = Some(open_tag_end)
-            .into_iter()
-            .chain(children.iter().map(|n| n.span()))
-            .chain(Some(close_tag_start))
-            .collect();
-        for (spans, children) in spans.windows(3).zip(&mut children) {
-            match children {
-                Node::RawText(t) => t.set_tag_spans(spans[0], spans[2]),
-                _ => {}
-            }
-        }
+        let close_tag_start = tag_close.as_ref().map(|v|v.start_tag.token_lt.span());
+
+        let children = RawText::vec_set_context(open_tag_end, close_tag_start, children);
+        
         Some(NodeFragment {
             tag_open,
             children,
@@ -99,7 +90,7 @@ impl ParseRecoverable for NodeDoctype {
         let token_start = parser.parse_simple::<DocStart>(input)?;
         let doctype_keyword = parser.parse_simple::<Ident>(input)?;
         if doctype_keyword.to_string().to_lowercase() != "doctype" {
-            parser.push_diagnostic(input.error("expected Doctype"));
+            parser.push_diagnostic(Diagnostic::spanned(doctype_keyword.span(), Level::Error, "expected DOCTYPE keyword"));
             return None;
         }
         let (value, token_end) =
@@ -178,13 +169,11 @@ impl ParseRecoverable for NodeElement {
         } else {
             // If node is not raw use any closing tag as separator, to early report about
             // invalid closing tags.
+            // Also parse only </ part to recover parser as soon as user types </
             let (children, close_tag) =
                 parser.parse_tokens_until::<Node, _, _>(input, CloseTagStart::parse);
 
-            let close_tag = close_tag
-                .map(|close_tag| CloseTag::parse_with_start_tag(input, close_tag))
-                .transpose();
-            let close_tag = parser.save_diagnostics(close_tag).and_then(identity);
+            let close_tag=  CloseTag::parse_with_start_tag(parser, input, close_tag);
 
             (children, close_tag)
         };

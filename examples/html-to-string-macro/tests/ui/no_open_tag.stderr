@@ -1,0 +1,11 @@
+error: close tag was parsed while waiting for open tag
+ --> tests/ui/no_open_tag.rs:5:14
+  |
+5 |             </html>
+  |              ^
+
+error: open tag has no coresponding close tag
+ --> tests/ui/no_open_tag.rs:5:13
+  |
+5 |             </html>
+  |             ^^^^^^^

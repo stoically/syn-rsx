@@ -70,4 +70,40 @@ fn test_parse_invalid_attr_block() -> Result<()> {
     Ok(())
 }
 
+
+#[test]
+fn test_parse_closed_tag_without_open() -> Result<()> {
+    let tokens = TokenStream::from_str(
+        "</foo>", 
+    )
+    .unwrap();
+    let config = ParserConfig::new().recover_block(true);
+    let (nodes, errors) = Parser::new(config).parse_recoverable(tokens).split_vec();
+
+    assert!(!errors.is_empty());
+
+    let Node::Element(f) = &nodes[0] else { panic!("expected element") };
+    assert_eq!(f.open_tag.name.to_string(), "foo");
+    Ok(())
+}
+
+#[test]
+fn test_parse_open_tag_without_close() -> Result<()> {
+    let tokens = TokenStream::from_str(
+        "<foo> <bar></foo>", 
+    )
+    .unwrap();
+    let config = ParserConfig::new().recover_block(true);
+    let (nodes, errors) = Parser::new(config).parse_recoverable(tokens).split_vec();
+
+    assert!(!errors.is_empty());
+
+    let Node::Element(f) = &nodes[0] else { panic!("expected element") };
+    assert_eq!(f.open_tag.name.to_string(), "foo");
+
+    let Node::Element(f) = &f.children[0] else { panic!("expected element") };
+    assert_eq!(f.open_tag.name.to_string(), "bar");
+    Ok(())
+}
+
 // TODO: keyed attribute

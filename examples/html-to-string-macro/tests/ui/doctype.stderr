@@ -1,0 +1,17 @@
+error: expected DOCTYPE keyword
+ --> tests/ui/doctype.rs:4:11
+  |
+4 |         <!not_doctype html>
+  |           ^^^^^^^^^^^
+
+error: Node parse failed
+ --> tests/ui/doctype.rs:4:23
+  |
+4 |         <!not_doctype html>
+  |                       ^^^^
+
+error: Tokens was skipped after incorrect parsing
+ --> tests/ui/doctype.rs:4:23
+  |
+4 |         <!not_doctype html>
+  |                       ^^^^^

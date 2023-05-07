@@ -182,7 +182,7 @@ pub struct NodeFragment {
     #[to_tokens(tokens::to_tokens_array)]
     pub children: Vec<Node>,
     /// Close fragment token
-    pub tag_close: FragmentClose,
+    pub tag_close: Option<FragmentClose>,
 }
 
 fn path_to_string(expr: &ExprPath) -> String {

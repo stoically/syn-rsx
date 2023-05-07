@@ -1,0 +1,121 @@
+error: unexpected end of input, expected identifier or integer
+  --> tests/ui/multiple_errors.rs:13:42
+   |
+13 |                         <div>"1" { world.} "2" </div>
+   |                                          ^
+
+error: unexpected end of input, expected identifier or integer
+  --> tests/ui/multiple_errors.rs:18:63
+   |
+18 |                     <div {"some-attribute-from-rust-blocks22".}>"3"</div>
+   |                                                               ^
+
+error: wrong close tag found
+  --> tests/ui/multiple_errors.rs:21:17
+   |
+21 |                 </br>
+   |                 ^^^^^
+   |
+help: open tag that should be closed started there
+  --> tests/ui/multiple_errors.rs:20:17
+   |
+20 |                 <div hello=world x=x >
+   |                 ^^^^^^^^^^^^^^^^^^^^^^
+
+error: wrong close tag found
+  --> tests/ui/multiple_errors.rs:22:17
+   |
+22 |                 </x>
+   |                 ^^^^
+   |
+help: open tag that should be closed started there
+  --> tests/ui/multiple_errors.rs:10:13
+   |
+10 |             <body>
+   |             ^^^^^^
+
+error: wrong close tag found
+  --> tests/ui/multiple_errors.rs:23:13
+   |
+23 |             </body>
+   |             ^^^^^^^
+   |
+help: open tag that should be closed started there
+  --> tests/ui/multiple_errors.rs:6:9
+   |
+6  |         <html>
+   |         ^^^^^^
+
+error: close tag was parsed while waiting for open tag
+  --> tests/ui/multiple_errors.rs:24:10
+   |
+24 |         </html>
+   |          ^
+
+error: open tag has no coresponding close tag
+  --> tests/ui/multiple_errors.rs:24:9
+   |
+24 |         </html>
+   |         ^^^^^^^
+
+error: unexpected token: `}`
+  --> tests/ui/multiple_errors.rs:13:34
+   |
+13 |                         <div>"1" { world.} "2" </div>
+   |                                  ^^^^^^^^^
+
+error: unexpected token: `}`
+  --> tests/ui/multiple_errors.rs:18:26
+   |
+18 |                     <div {"some-attribute-from-rust-blocks22".}>"3"</div>
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: could not find `docs` in the crate root
+  --> tests/ui/multiple_errors.rs:4:5
+   |
+4  | /     html! {
+5  | |         <!DOCTYPE html>
+6  | |         <html>
+7  | |             <head>
+...  |
+25 | |
+26 | |     };
+   | |_____^ could not find `docs` in the crate root
+   |
+   = note: this error originates in the macro `html` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0425]: cannot find value `x` in this scope
+  --> tests/ui/multiple_errors.rs:12:28
+   |
+12 |                     <div x=x a=2 x=3 >
+   |                            ^ not found in this scope
+
+error[E0425]: cannot find value `world` in this scope
+  --> tests/ui/multiple_errors.rs:13:36
+   |
+13 |                         <div>"1" { world.} "2" </div>
+   |                                    ^^^^^ not found in this scope
+
+error[E0425]: cannot find value `a` in this scope
+  --> tests/ui/multiple_errors.rs:15:32
+   |
+15 |                         <div x=a some text as attribute flags and unclosed tag>  "2" </div>
+   |                                ^ not found in this scope
+
+error[E0425]: cannot find value `a` in this scope
+  --> tests/ui/multiple_errors.rs:16:29
+   |
+16 |                     <div x =a > some unquoted text with quotes "3". <div/></div>
+   |                             ^ not found in this scope
+
+error[E0425]: cannot find value `world` in this scope
+  --> tests/ui/multiple_errors.rs:20:28
+   |
+20 |                 <div hello=world x=x >
+   |                            ^^^^^ not found in this scope
+
+error[E0425]: cannot find value `x` in this scope
+  --> tests/ui/multiple_errors.rs:20:36
+   |
+20 |                 <div hello=world x=x >
+   |                                    ^ not found in this scope

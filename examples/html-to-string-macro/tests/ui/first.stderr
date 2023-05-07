@@ -1,0 +1,61 @@
+error: expected expression, found `,`
+  --> tests/ui/first.rs:31:6
+   |
+31 |     },
+   |      ^ expected expression
+
+error: unexpected end of input, expected identifier or integer
+  --> tests/ui/first.rs:14:42
+   |
+14 |                         <div>"1" { world.} "2" </div>
+   |                                          ^
+
+error: unexpected token: `}`
+  --> tests/ui/first.rs:14:34
+   |
+14 |                         <div>"1" { world.} "2" </div>
+   |                                  ^^^^^^^^^
+
+error[E0425]: cannot find value `x` in this scope
+  --> tests/ui/first.rs:13:28
+   |
+13 |                     <div x=x a=2 x=3 >
+   |                            ^ not found in this scope
+
+error[E0425]: cannot find value `world` in this scope
+  --> tests/ui/first.rs:14:36
+   |
+14 |                         <div>"1" { world.} "2" </div>
+   |                                    ^^^^^ not found in this scope
+
+error[E0425]: cannot find value `a` in this scope
+  --> tests/ui/first.rs:17:32
+   |
+17 |                         <div x=a some text as attribute flags and unclosed tag>  "2" </div>
+   |                                ^ not found in this scope
+
+error[E0425]: cannot find value `a` in this scope
+  --> tests/ui/first.rs:19:29
+   |
+19 |                     <div x =a > some unquoted text with quotes "3". <div/></div>
+   |                             ^ not found in this scope
+
+error[E0601]: `main` function not found in crate `$CRATE`
+  --> tests/ui/first.rs:32:2
+   |
+32 | }
+   |  ^ consider adding a `main` function to `$DIR/tests/ui/first.rs`
+
+error[E0308]: mismatched types
+  --> tests/ui/first.rs:3:5
+   |
+3  | /     html! {
+4  | |         <!DOCTYPE html>
+5  | |         <html>
+6  | |             <head>
+...  |
+30 | |         // </r>
+31 | |     },
+   | |_____^ expected `()`, found `String`
+   |
+   = note: this error originates in the macro `format` which comes from the expansion of the macro `html` (in Nightly builds, run with -Z macro-backtrace for more info)
