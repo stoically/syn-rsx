@@ -37,20 +37,20 @@ filter_unconventional = false
 split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
-    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/orhun/git-cliff/issues/${2}))"},
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/stoically/syn-rsx/issues/${2}))"},
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
-    { message = "^feat", group = "Features"},
-    { message = "^fix", group = "Bug Fixes"},
-    { message = "^doc", group = "Documentation"},
-    { message = "^perf", group = "Performance"},
-    { message = "^refactor", group = "Refactor"},
-    { message = "^style", group = "Styling"},
-    { message = "^test", group = "Testing"},
-    { message = "^release", skip = true},
-    { message = "^chore", group = "Miscellaneous Tasks"},
-    { body = ".*security", group = "Security"},
+    { message = "^[fF]eat", group = "Features"},
+    { message = "^[dD]oc", group = "Documentation"},
+    { message = "^[pP]erf", group = "Performance"},
+    { message = "^[rR]efactor", group = "Refactor"},
+    { message = "^[sS]tyle", group = "Styling"},
+    { message = "^[tT]est", group = "Testing"},
+    { message = "^[rR]elease", skip = true},
+    { message = "^[cC]hore", group = "Chore"},
+    { body = ".*[sS]ecurity", group = "Security"},
+    { message = ".*", group = "Other", default_scope = "other"},
 ]
 # filter out the commits that are not matched by commit parsers
 filter_commits = false

@@ -2,21 +2,110 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Chore
+
+- Refactor node module, split types into submodules
+- Bump syn_derive to 0.1.6 to avoid nightly
+
+### Documentation
+
+- Mixed name punctuation and node span ([#44](https://github.com/stoically/syn-rsx/issues/44))
+- Missing module documentation ([#45](https://github.com/stoically/syn-rsx/issues/45))
+- Fix formatting ([#46](https://github.com/stoically/syn-rsx/issues/46))
+- Fix code block ([#47](https://github.com/stoically/syn-rsx/issues/47))
+
+### Features
+
+- Track the source span for all nodes ([#42](https://github.com/stoically/syn-rsx/issues/42))
+
+### Other
+
+- Move node.rs to separate module.
+
+- Update to syn 2.0
+
+- Remove Display implementation for most of node types.
+
+Original Display implementation contain only struct Name.
+Current Display implementation doesn't carry any information about interns of a struct,
+and therefore couldn't be used to write FromStr.
+
+- Remove attributes from node list, and make type guaranties that attribute will be stored only in Element
+
+- Simlify Parse and ToToken impl, by using syn_derive.
+
+- Re-implement tree flattening.
+
+- Improve tag close handling.
+
+- Implement config passing, and allow to emit more than one error from macro expansion.
+
+- Reimplement transform_block and fix tests
+
+- Make Node types clonable.
+
+- Fix recoverable parser. Now try to recover if any sequence is incorrect.
+
+- Allow parsing of invalid rust code blocks
+
+- Add basic raw text support.
+
+- Add support of unqoted text.
+
+- Fix attribute value parsing span
+
+- Cleanup of parsing code.
+
+- Remove tls context at all.
+Use RecoverableContext instead.
+
+- Updated example, bench, made fragment parsing recoverable.
+
+- Add comparsion with syn-rsx
+
+- Make public keyed attribute fields.
+
+
+### Refactor
+
+- Refactor ToTokens implementation and node structure to contain all source tokens.
+
+- Refactor code, remove NodeValueExpr type
+NodeValueExpr was replaced by syn::Expr in all places where expr is needed.
+For places where {code} is expected NodeBlock was used.
+
+- Refactor recoverable parser.
+
+Implement ParseRecoverable trait, and make Recoverable context non-static(non-tls).
+Add usage of Diagnostic to provide more user friendly errors.
+Handling of unclosed tags on end-of-input, and closed tags without open tags.
+
+
+### Testing
+
+- TRYBUILD=overwrite in ui tests
+
 ## [0.9.0] - 2022-11-10
 
 ### Documentation
 
-- Remove outdated node link ([#36](https://github.com/orhun/git-cliff/issues/36))
-- Hint regarding braced blocks ([#38](https://github.com/orhun/git-cliff/issues/38))
-- Fix typo ([#39](https://github.com/orhun/git-cliff/issues/39))
+- Remove outdated node link ([#36](https://github.com/stoically/syn-rsx/issues/36))
+- Hint regarding braced blocks ([#38](https://github.com/stoically/syn-rsx/issues/38))
+- Fix typo ([#39](https://github.com/stoically/syn-rsx/issues/39))
 
 ## [0.9.0-beta.2] - 2022-11-06
 
 ### Features
 
-- [**breaking**] Replace Colon and Dash with a merged variant ([#34](https://github.com/orhun/git-cliff/issues/34))
+- [**breaking**] Replace Colon and Dash with a merged variant ([#34](https://github.com/stoically/syn-rsx/issues/34))
 
 ## [0.9.0-beta.1] - 2022-11-03
+
+### Chore
+
+- Add rustfmt.toml
 
 ### Documentation
 
@@ -27,36 +116,29 @@ All notable changes to this project will be documented in this file.
 - Fix node links
 - Improve parser docs
 - Remove TODO
-- Fix attribute value example ([#28](https://github.com/orhun/git-cliff/issues/28))
-- Fix blocks example ([#29](https://github.com/orhun/git-cliff/issues/29))
-- Fix typo ([#30](https://github.com/orhun/git-cliff/issues/30))
+- Fix attribute value example ([#28](https://github.com/stoically/syn-rsx/issues/28))
+- Fix blocks example ([#29](https://github.com/stoically/syn-rsx/issues/29))
+- Fix typo ([#30](https://github.com/stoically/syn-rsx/issues/30))
 
 ### Features
 
 - [**breaking**] Make path_to_string private
 
-### Miscellaneous Tasks
+### Other
 
-- Add rustfmt.toml
+- Move flat tree converter back into node parser
+- Switch fmt to nightly toolchain
 
 ### Refactor
 
 - [**breaking**] Drop `NodeName::span` method
 - Pass block_transform a forked stream
 - Move flat tree converter to node method
-- Replace extrude with let-else ([#31](https://github.com/orhun/git-cliff/issues/31))
-
-### Ci
-
-- Switch fmt to nightly toolchain
-
-### Revert
-
-- Move flat tree converter back into node parser
+- Replace extrude with let-else ([#31](https://github.com/stoically/syn-rsx/issues/31))
 
 ## [0.9.0-alpha.1] - 2022-10-21
 
-### Miscellaneous Tasks
+### Chore
 
 - Add Cargo.lock to .gitignore
 - Add git-cliff configuration
@@ -67,26 +149,22 @@ All notable changes to this project will be documented in this file.
 ### Refactor
 
 - Move config into dedicated module
-- [**breaking**] Switch `Node` to enum-style ([#23](https://github.com/orhun/git-cliff/issues/23))
+- [**breaking**] Switch `Node` to enum-style ([#23](https://github.com/stoically/syn-rsx/issues/23))
 
 ## [0.8.1] - 2022-06-26
 
-### Documentation
-
-- Update README
-
-### Miscellaneous Tasks
+### Chore
 
 - Clippy
 - Clippy
 - Remove Cargo.lock
 - Bump dependencies
 
+### Documentation
+
+- Update README
+
 ## [0.8.0] - 2021-02-17
-
-### Bug Fixes
-
-- Should be value not name
 
 ### Documentation
 
@@ -97,6 +175,10 @@ All notable changes to this project will be documented in this file.
 
 - Doctypes, comments and fragments
 - Value_as_string support for `ExprPath`
+
+### Other
+
+- Should be value not name
 
 ### Refactor
 
@@ -114,17 +196,13 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-- [**breaking**] Block in node name position ([#11](https://github.com/orhun/git-cliff/issues/11))
+- [**breaking**] Block in node name position ([#11](https://github.com/stoically/syn-rsx/issues/11))
 
-### Ci
+### Other
 
 - Tarpaulin and codecov
 
 ## [0.8.0-beta.1] - 2021-01-03
-
-### Bug Fixes
-
-- Formatting
 
 ### Documentation
 
@@ -133,24 +211,21 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Properly handle empty elements
-- [**breaking**] Transform_block callback ([#9](https://github.com/orhun/git-cliff/issues/9))
-- [**breaking**] Doctype ([#6](https://github.com/orhun/git-cliff/issues/6))
-- [**breaking**] Html comments ([#7](https://github.com/orhun/git-cliff/issues/7))
-- [**breaking**] Fragments ([#8](https://github.com/orhun/git-cliff/issues/8))
+- [**breaking**] Transform_block callback ([#9](https://github.com/stoically/syn-rsx/issues/9))
+- [**breaking**] Doctype ([#6](https://github.com/stoically/syn-rsx/issues/6))
+- [**breaking**] Html comments ([#7](https://github.com/stoically/syn-rsx/issues/7))
+- [**breaking**] Fragments ([#8](https://github.com/stoically/syn-rsx/issues/8))
+
+### Other
+
+- Formatting
+- Bump criterion
 
 ### Refactor
 
 - Cleanup
 
-### Deps
-
-- Bump criterion
-
 ## [0.7.3] - 2020-10-30
-
-### Bug Fixes
-
-- Only count top level nodes in case of flat_tree
 
 ### Documentation
 
@@ -165,9 +240,16 @@ All notable changes to this project will be documented in this file.
 - Support blocks in html-to-string-macro
 - Implement ToTokens for NodeName
 
+### Other
+
+- Only count top level nodes in case of flat_tree
+- Parse2 with criterion
+- More test tokens
+- Update
+
 ### Performance
 
-- More peeking and better block parsing ([#5](https://github.com/orhun/git-cliff/issues/5))
+- More peeking and better block parsing ([#5](https://github.com/stoically/syn-rsx/issues/5))
 - Use `node_name_punctuated_ident` to parse name path
 
 ### Refactor
@@ -176,15 +258,6 @@ All notable changes to this project will be documented in this file.
 - Rename test file
 - Switch impl ToString on Node to impl Display
 - Merge text and block handling
-
-### Bench
-
-- Parse2 with criterion
-- More test tokens
-
-### Deps
-
-- Update
 
 ## [0.7.2] - 2020-09-10
 
@@ -202,7 +275,7 @@ All notable changes to this project will be documented in this file.
 
 ## [0.7.1] - 2020-09-09
 
-### Bug Fixes
+### Other
 
 - Check after parsing is done
 
@@ -221,6 +294,11 @@ All notable changes to this project will be documented in this file.
 - Configure maximum number of allowed top level nodes
 - Configure type of top level nodes
 
+### Other
+
+- Bump
+- Add html_to_string macro
+
 ### Refactor
 
 - Peek to determine node type
@@ -231,25 +309,21 @@ All notable changes to this project will be documented in this file.
 - Get rid of helper struct
 - Exactly required number of top level nodes
 
-### Deps
-
-- Bump
-
-### Examples
-
-- Add html_to_string macro
-
 ## [0.6.1] - 2020-06-06
+
+### Chore
+
+- Update cargo lock
 
 ### Documentation
 
 - Typo
 
-### Miscellaneous Tasks
-
-- Update cargo lock
-
 ## [0.6.0] - 2020-06-06
+
+### Chore
+
+- Update cargo.lock
 
 ### Documentation
 
@@ -258,10 +332,6 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Node names with colons
-
-### Miscellaneous Tasks
-
-- Update cargo.lock
 
 ### Refactor
 
@@ -293,7 +363,7 @@ All notable changes to this project will be documented in this file.
 
 ### Refactor
 
-- Rename childs to children ([#1](https://github.com/orhun/git-cliff/issues/1))
+- Rename childs to children ([#1](https://github.com/stoically/syn-rsx/issues/1))
 
 ## [0.3.4] - 2020-06-03
 
@@ -335,6 +405,11 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.0] - 2020-05-30
 
+### Chore
+
+- Update cargo.lock
+- Bump syn dep
+
 ### Documentation
 
 - Project keywords
@@ -343,12 +418,11 @@ All notable changes to this project will be documented in this file.
 
 - Parse full block
 
-### Miscellaneous Tasks
+## [0.1.2] - 2020-05-29
+
+### Chore
 
 - Update cargo.lock
-- Bump syn dep
-
-## [0.1.2] - 2020-05-29
 
 ### Documentation
 
@@ -357,17 +431,15 @@ All notable changes to this project will be documented in this file.
 - Update
 - Update readme
 
-### Miscellaneous Tasks
+### Other
 
-- Update cargo.lock
+- Initial commit
+
+- Build workflow
 
 ### Refactor
 
 - Pub not needed
 - Parse blocks as NodeType::Block
-
-### Ci
-
-- Build workflow
 
 <!-- generated by git-cliff -->
