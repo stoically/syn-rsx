@@ -13,8 +13,8 @@ use crate::{
 
 #[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct KeyedAttributeValue {
-    token_eq: Token![=],
-    value: Expr,
+    pub token_eq: Token![=],
+    pub value: Expr,
 }
 ///
 /// Element attribute with fixed key.
