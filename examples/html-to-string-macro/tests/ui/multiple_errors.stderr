@@ -14,37 +14,37 @@ error: wrong close tag found
   --> tests/ui/multiple_errors.rs:21:17
    |
 21 |                 </br>
-   |                 ^^^^^
-   |
-help: open tag that should be closed started there
+   |                 ^
+
+error: [help] open tag that should be closed; it's started here
   --> tests/ui/multiple_errors.rs:20:17
    |
 20 |                 <div hello=world x=x >
-   |                 ^^^^^^^^^^^^^^^^^^^^^^
+   |                 ^
 
 error: wrong close tag found
   --> tests/ui/multiple_errors.rs:22:17
    |
 22 |                 </x>
-   |                 ^^^^
-   |
-help: open tag that should be closed started there
+   |                 ^
+
+error: [help] open tag that should be closed; it's started here
   --> tests/ui/multiple_errors.rs:10:13
    |
 10 |             <body>
-   |             ^^^^^^
+   |             ^
 
 error: wrong close tag found
   --> tests/ui/multiple_errors.rs:23:13
    |
 23 |             </body>
-   |             ^^^^^^^
-   |
-help: open tag that should be closed started there
-  --> tests/ui/multiple_errors.rs:6:9
-   |
-6  |         <html>
-   |         ^^^^^^
+   |             ^
+
+error: [help] open tag that should be closed; it's started here
+ --> tests/ui/multiple_errors.rs:6:9
+  |
+6 |         <html>
+  |         ^
 
 error: close tag was parsed while waiting for open tag
   --> tests/ui/multiple_errors.rs:24:10
@@ -56,7 +56,7 @@ error: open tag has no coresponding close tag
   --> tests/ui/multiple_errors.rs:24:9
    |
 24 |         </html>
-   |         ^^^^^^^
+   |         ^
 
 error: unexpected token: `}`
   --> tests/ui/multiple_errors.rs:13:34

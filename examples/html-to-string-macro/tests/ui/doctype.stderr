@@ -14,4 +14,4 @@ error: Tokens was skipped after incorrect parsing
  --> tests/ui/doctype.rs:4:23
   |
 4 |         <!not_doctype html>
-  |                       ^^^^^
+  |                       ^^^^

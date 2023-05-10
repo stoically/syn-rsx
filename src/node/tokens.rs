@@ -213,7 +213,7 @@ impl ParseRecoverable for NodeElement {
                     .spanned_child(
                         open_tag.span(),
                         Level::Help,
-                        "open tag that should be closed started there",
+                        "open tag that should be closed; it's started here",
                     );
 
             parser.push_diagnostic(diagnostic)
