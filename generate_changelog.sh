@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+GIT_CLIFF__CHANGELOG__FOOTER=$(cat CHANGELOG.old)
+OLD_COMMIT="734000aed91c62392e0fa6f445b1fad734ba2a17"
+
+git cliff -o CHANGELOG.md -- $OLD_COMMIT..HEAD
