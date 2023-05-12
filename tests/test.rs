@@ -4,7 +4,7 @@ use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Block;
-use syn_rsx::{
+use rstml::{
     parse2, parse2_with_config, KeyedAttribute, Node, NodeAttribute, NodeElement, NodeType,
     ParserConfig,
 };

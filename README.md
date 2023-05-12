@@ -1,12 +1,12 @@
-# syn-rsx
+# rstml
 
-[![crates.io page](https://img.shields.io/crates/v/syn-rsx.svg)](https://crates.io/crates/syn-rsx)
-[![docs.rs page](https://docs.rs/syn-rsx/badge.svg)](https://docs.rs/syn-rsx/)
-[![codecov](https://codecov.io/gh/stoically/syn-rsx/branch/main/graph/badge.svg?token=2LMJ8YEV92)](https://codecov.io/gh/stoically/syn-rsx)
-![build](https://github.com/stoically/syn-rsx/workflows/ci/badge.svg)
-![license: MIT](https://img.shields.io/crates/l/syn-rsx.svg)
+[![crates.io page](https://img.shields.io/crates/v/rstml.svg)](https://crates.io/crates/rstml)
+[![docs.rs page](https://docs.rs/rstml/badge.svg)](https://docs.rs/rstml/)
+[![codecov](https://codecov.io/gh/rs-tml/rstml/branch/main/graph/badge.svg?token=2LMJ8YEV92)](https://codecov.io/gh/rs-tml/rs-tml)
+![build](https://github.com/rs-tml/rstml/workflows/ci/badge.svg)
+![license: MIT](https://img.shields.io/crates/l/rstml.svg)
 
-[`syn`]-powered parser for JSX-like [`TokenStream`]s, aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
+Rust templating parser for JSX-like [`TokenStream`]s, aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
 
 The fork of original [syn-rsx](https://github.com/stoically/syn-rsx) repo.
 It was created because of various reasons:
@@ -14,6 +14,7 @@ It was created because of various reasons:
 - Syn v2 was released and `syn-rsx` need to be mooved to new version.
 - The idea of [lossless parsing](https://github.com/stoically/syn-rsx/issues/53) was left unattended.
 - [Unquoted text](https://github.com/stoically/syn-rsx/issues/2) feature should advance.
+- Interest in recoverable parsing and better IDE support.
 
 
 See [comparsion](/comparsion-with-syn-rsx.md) for more detail.
@@ -23,7 +24,7 @@ use std::convert::TryFrom;
 
 use eyre::bail;
 use quote::quote;
-use syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
+use rstml::{parse2, Node, NodeAttribute, NodeElement, NodeText};
 
 // Create HTML `TokenStream`.
 let tokens = quote! { <hello world>"hi"</hello> };
@@ -56,10 +57,20 @@ You might want to check out the [html-to-string-macro example] as well.
 
 - **Text nodes**
 
-  Support for [unquoted text is planned].
 
   ```html
   <div>"String literal"</div>
+  ```
+
+- **Unquoted text nodes**
+
+  Unquoted text is supported with few limitations:
+  - Only valid Rust TokenStream can be unquoted text (no single quote text is supported, no unclosed braces, etc.)
+  - Unquoted text not always can save spaces. It uses [`Span::source_text`] and [`Span::join`] to retrive info about spaces, and it is not always available.
+  - Quoted text near unquoted treated as diferent Node, end library user should decide whenever to preserve quotation.
+
+  ```html
+  <div> Some string that is valid rust token stream </div>
   ```
 
 - **Node names separated by dash, colon or double colon**
@@ -123,6 +134,24 @@ You might want to check out the [html-to-string-macro example] as well.
      
   ```
 
+- **Recoverable parser**
+
+  Can parse html with multiple mistakes.
+  As result library user get array of errors that can be reported, and tree of nodes that was parsed.
+
+  ```html
+   <div hello={world.} /> <!-- dot after world is invalid syn expression -->
+    <>
+        <div>"1"</x> <!-- incorrect closed tag -->
+        <div>"2"</div>
+        <div>"3"</div>
+        <div {"some-attribute-from-rust-block"}/>
+    </>
+  ```
+
+  Using this feature one can write macro in IDE friendly way.
+  This macro will work faster (because on invalid syntax it change output slightly, instead of removing it completely, so IDE can check diff quicly). And give completion (goto definition, and other semantic related feature) more often.
+
 - **Customization**
 
   A `ParserConfig` to customize parsing behavior is available, so if you have
@@ -135,7 +164,8 @@ You might want to check out the [html-to-string-macro example] as well.
   possible to have custom syntax in blocks. More details in [#9]
 
 [`syn`]: https://github.com/dtolnay/syn
+[`Span::join`]: https://doc.rust-lang.org/proc_macro/struct.Span.html#method.join
+[`Span::source_text`]: https://doc.rust-lang.org/proc_macro/struct.Span.html#method.source_text
 [`tokenstream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 [html-to-string-macro example]: https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro
-[unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
 [#9]: https://github.com/stoically/syn-rsx/issues/9

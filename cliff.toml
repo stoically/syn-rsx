@@ -35,7 +35,7 @@ filter_unconventional = false
 split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
-    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/stoically/syn-rsx/issues/${2}))"},
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/rs-tml/rstml/issues/${2}))"},
 ]
 # regex for parsing and grouping commits
 commit_parsers = [

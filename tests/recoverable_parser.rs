@@ -4,7 +4,7 @@ use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Block;
-use syn_rsx::{Node, NodeAttribute, NodeBlock, Parser, ParserConfig};
+use rstml::{Node, NodeAttribute, NodeBlock, Parser, ParserConfig};
 
 #[test]
 fn test_recover_incorrect_closing_tags() {

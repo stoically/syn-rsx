@@ -262,7 +262,7 @@ impl RecoverableContext {
     /// Example:
     /// ```no_build
     /// # use syn::{parse::{Parser, ParseStream}, Ident, Result, parse_macro_input, Token};
-    /// # use syn_rsx::{parse_tokens_until};
+    /// # use rstml::{parse_tokens_until};
     /// # fn main() -> syn::Result<()>{
     /// let tokens:proc_macro2::TokenStream = quote::quote!(few idents seperated by spaces and then minus sign - that will stop parsing).into();
     /// let concat_idents_without_minus = |input: ParseStream| -> Result<String> {

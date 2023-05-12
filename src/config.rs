@@ -121,7 +121,7 @@ impl ParserConfig {
     /// ```rust
     /// use quote::quote;
     /// use syn::Token;
-    /// use syn_rsx::{parse2_with_config, ParserConfig};
+    /// use rstml::{parse2_with_config, ParserConfig};
     ///
     /// let tokens = quote! {
     ///     <div>{%}</div>

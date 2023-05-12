@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Literal, TokenTree};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn_rsx::{Node, NodeAttribute, NodeName, Parser, ParserConfig};
+use rstml::{Node, NodeAttribute, NodeName, Parser, ParserConfig};
 
 #[derive(Default)]
 struct WalkNodesOutput<'a> {
@@ -115,7 +115,7 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> WalkNodesOutput<'a> {
 /// Values returned from braced blocks `{}` are expected to return something
 /// that implements `Display`.
 ///
-/// See [syn-rsx docs](https://docs.rs/syn-rsx/) for supported tags and syntax.
+/// See [rstml docs](https://docs.rs/rstml/) for supported tags and syntax.
 ///
 /// # Example
 ///

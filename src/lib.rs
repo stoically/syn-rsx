@@ -8,7 +8,7 @@
 //!
 //! use eyre::bail;
 //! use quote::quote;
-//! use syn_rsx::{parse2, Node, NodeAttribute, NodeElement, NodeText};
+//! use rstml::{parse2, Node, NodeAttribute, NodeElement, NodeText};
 //!
 //! // Create HTML `TokenStream`.
 //! let tokens = quote! { <hello world>"hi"</hello> };
@@ -39,7 +39,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <hello world />
 //!   # }).unwrap();
@@ -51,7 +51,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <div>"String literal"</div>
 //!   # }).unwrap();
@@ -61,7 +61,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <tag-name some:attribute-key="value" />
 //!   <tag::name attribute::key="value" />
@@ -72,7 +72,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <input type="submit" />
 //!   # }).unwrap();
@@ -82,7 +82,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <!DOCTYPE html>
 //!   <!-- "comment" -->
@@ -94,7 +94,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <{ let block = "in node name position"; } />
 //!   <div>{ let block = "in node position"; }</div>
@@ -108,7 +108,7 @@
 //!
 //!   ```rust
 //!   # use quote::quote;
-//!   # use syn_rsx::parse2;
+//!   # use rstml::parse2;
 //!   # parse2(quote! {
 //!   <div key=some::value() />
 //!   # }).unwrap();

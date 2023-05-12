@@ -1,11 +1,11 @@
 [package]
-name = "syn-rsx"
-description = "syn-powered parser for JSX-like TokenStreams"
-version = "0.9.0"
-authors = ["stoically <stoically@protonmail.com>"]
+name = "rstml"
+description = "Rust templating parser for JSX-like TokenStreams"
+version = "0.10.0"
+authors = ["vldm <me@vldm.ccc>","stoically <stoically@protonmail.com>"]
 keywords = ["syn", "jsx", "rsx", "html", "macro"]
 edition = "2018"
-repository = "https://github.com/stoically/syn-rsx"
+repository = "https://github.com/rs-tml/rstml"
 readme = "README.md"
 license = "MIT"
 resolver = "2"

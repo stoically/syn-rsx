@@ -5,4 +5,4 @@
 ![build](https://github.com/stoically/syn-rsx/workflows/ci/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/html-to-string-macro.svg)
 
-simple html to string macro powered by [syn-rsx](https://crates.io/crates/syn-rsx).
+simple html to string macro powered by [rstml](https://crates.io/crates/rstml).

@@ -12,18 +12,14 @@ All notable changes to this project will be documented in this file.
 - Make Node types clonable.
 - Fix recoverable parser. Now try to recover if any sequence is incorrect.
 - Bump syn_derive to 0.1.6 to avoid nightly
+- Start a new version history
 
 ### Documentation
 
-- Mixed name punctuation and node span ([#44](https://github.com/stoically/syn-rsx/issues/44))
-- Missing module documentation ([#45](https://github.com/stoically/syn-rsx/issues/45))
-- Fix formatting ([#46](https://github.com/stoically/syn-rsx/issues/46))
-- Fix code block ([#47](https://github.com/stoically/syn-rsx/issues/47))
 - Add comparsion with syn-rsx
 
 ### Features
 
-- Track the source span for all nodes ([#42](https://github.com/stoically/syn-rsx/issues/42))
 - Remove attributes from node list, and make type guaranties that attribute will be stored only in Element
 - Improve tag close handling.
 - Allow parsing of invalid rust code blocks
@@ -37,6 +33,7 @@ All notable changes to this project will be documented in this file.
 - Attribute value parsing span
 - Updated example, bench, made fragment parsing recoverable.
 - Make public keyed attribute fields.
+- RawText to_source implementation on stable
 
 ### Refactor
 
@@ -56,6 +53,20 @@ Use RecoverableContext instead.
 ### Testing
 
 - TRYBUILD=overwrite in ui tests
+
+
+## [unreleased]
+
+### Documentation
+
+- Mixed name punctuation and node span ([#44](https://github.com/stoically/syn-rsx/issues/44))
+- Missing module documentation ([#45](https://github.com/stoically/syn-rsx/issues/45))
+- Fix formatting ([#46](https://github.com/stoically/syn-rsx/issues/46))
+- Fix code block ([#47](https://github.com/stoically/syn-rsx/issues/47))
+
+### Features
+
+- Track the source span for all nodes ([#42](https://github.com/stoically/syn-rsx/issues/42))
 
 ## [0.9.0] - 2022-11-10
 

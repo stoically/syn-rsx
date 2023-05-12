@@ -1,11 +1,11 @@
 [package]
 name = "html-to-string-macro"
-description = "simple html to string macro powered by syn-rsx"
+description = "simple html to string macro powered by rstml"
 version = "0.2.5"
 authors = ["stoically <stoically@protonmail.com>"]
 keywords = ["html-to-string", "html", "macro"]
 edition = "2021"
-repository = "https://github.com/stoically/syn-rsx/tree/main/examples/html-to-string-macro"
+repository = "https://github.com/rs-tml/rstml/tree/main/examples/html-to-string-macro"
 readme = "README.md"
 license = "MIT"
 
@@ -16,7 +16,7 @@ proc-macro = true
 proc-macro2 = "1.0.47"
 quote = "1.0.21"
 syn = "2.0.15"
-syn-rsx = { path = "../../" }
+rstml = { path = "../../" }
 
 [dev-dependencies]
 trybuild = "1.0"

@@ -1,3 +1,17 @@
+
+## [unreleased]
+
+### Documentation
+
+- Mixed name punctuation and node span ([#44](https://github.com/stoically/syn-rsx/issues/44))
+- Missing module documentation ([#45](https://github.com/stoically/syn-rsx/issues/45))
+- Fix formatting ([#46](https://github.com/stoically/syn-rsx/issues/46))
+- Fix code block ([#47](https://github.com/stoically/syn-rsx/issues/47))
+
+### Features
+
+- Track the source span for all nodes ([#42](https://github.com/stoically/syn-rsx/issues/42))
+
 ## [0.9.0] - 2022-11-10
 
 ### Documentation
