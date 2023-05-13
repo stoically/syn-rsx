@@ -9,6 +9,14 @@ pub mod docs {
 }
 #[test]
 fn test() {
+
+    let nightly_unqoted = " Hello  world with spaces ";
+    let stable_unqoted = "Hello world with spaces";
+    let unquoted_text = if cfg!(feature = "nightly") {
+        nightly_unqoted
+    } else {
+        stable_unqoted
+    };
     let world = "planet";
     assert_eq!(
         html! {
@@ -22,14 +30,14 @@ fn test() {
                     <div hello={world} />
                     <>
                         <div>"1"</div>
-                        <div>"2"</div>
+                        <div> Hello  world with spaces </div>
                         <div>"3"</div>
                         <div {"some-attribute-from-rust-block"}/>
                     </>
                 </body>
             </html>
         },
-        r#"
+        format!(r#"
             <!DOCTYPE html>
             <html>
                 <head>
@@ -39,12 +47,12 @@ fn test() {
                     <!-- comment -->
                     <div hello="planet"/>
                     <div>1</div>
-                    <div>2</div>
+                    <div>{}</div>
                     <div>3</div>
                     <div some-attribute-from-rust-block/>
                 </body>
             </html>
-        "#
+        "#, unquoted_text)
         .split('\n')
         .map(|line| line.trim())
         .collect::<Vec<&str>>()

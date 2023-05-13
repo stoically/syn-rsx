@@ -60,9 +60,25 @@ impl RawText {
             debug_assert!(full_text.starts_with(&start_text));
             Some(full_text[start_text.len()..(full_text.len() - end_text.len())].to_string())
         } else {
-            self.token_stream.span().source_text()
+            self.join_spans()?.source_text()
         }
     }
+
+    /// Return Spans for all unquoted text or nothing.
+    /// Usefull to detect is `Span::join` is available or not.
+    pub fn join_spans(&self) -> Option<Span> {
+        let mut span:Option<Span> = None;
+        for tt in self.token_stream.clone().into_iter() {
+            let joined = if let Some(span) = span {
+                span.join(tt.span())?
+            } else {
+                tt.span()
+            };
+            span = Some(joined);
+        }
+        return span
+    }
+
     pub fn is_empty(&self) -> bool {
         self.token_stream.is_empty()
     }
