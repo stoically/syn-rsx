@@ -3,11 +3,11 @@ use std::{convert::TryFrom, str::FromStr};
 use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Block;
 use rstml::{
     parse2, parse2_with_config, KeyedAttribute, Node, NodeAttribute, NodeElement, NodeType,
     ParserConfig,
 };
+use syn::Block;
 
 #[test]
 fn test_single_empty_element() -> Result<()> {

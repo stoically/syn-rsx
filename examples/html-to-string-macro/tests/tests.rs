@@ -9,7 +9,6 @@ pub mod docs {
 }
 #[test]
 fn test() {
-
     let nightly_unqoted = " Hello  world with spaces ";
     let stable_unqoted = "Hello world with spaces";
     let unquoted_text = if cfg!(feature = "nightly") {
@@ -37,7 +36,8 @@ fn test() {
                 </body>
             </html>
         },
-        format!(r#"
+        format!(
+            r#"
             <!DOCTYPE html>
             <html>
                 <head>
@@ -52,7 +52,9 @@ fn test() {
                     <div some-attribute-from-rust-block/>
                 </body>
             </html>
-        "#, unquoted_text)
+        "#,
+            unquoted_text
+        )
         .split('\n')
         .map(|line| line.trim())
         .collect::<Vec<&str>>()

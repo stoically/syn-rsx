@@ -3,8 +3,8 @@ use std::{convert::TryFrom, str::FromStr};
 use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Block;
 use rstml::{Node, NodeAttribute, NodeBlock, Parser, ParserConfig};
+use syn::Block;
 
 #[test]
 fn test_recover_incorrect_closing_tags() {

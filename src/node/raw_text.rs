@@ -67,7 +67,7 @@ impl RawText {
     /// Return Spans for all unquoted text or nothing.
     /// Usefull to detect is `Span::join` is available or not.
     pub fn join_spans(&self) -> Option<Span> {
-        let mut span:Option<Span> = None;
+        let mut span: Option<Span> = None;
         for tt in self.token_stream.clone().into_iter() {
             let joined = if let Some(span) = span {
                 span.join(tt.span())?
@@ -76,7 +76,7 @@ impl RawText {
             };
             span = Some(joined);
         }
-        return span
+        return span;
     }
 
     pub fn is_empty(&self) -> bool {

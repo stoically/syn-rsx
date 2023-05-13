@@ -43,7 +43,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .into_iter()
                 .collect(),
             );
-            rstml::parse2_with_config(RUST_SITE_SIMPLE.with(|tokens|tokens.clone()), config)
+            rstml::parse2_with_config(RUST_SITE_SIMPLE.with(|tokens| tokens.clone()), config)
         })
     });
 }

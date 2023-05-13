@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use proc_macro::TokenStream;
 use proc_macro2::{Literal, TokenTree};
 use quote::{quote, quote_spanned, ToTokens};
-use syn::spanned::Spanned;
 use rstml::{Node, NodeAttribute, NodeName, Parser, ParserConfig};
+use syn::spanned::Spanned;
 
 #[derive(Default)]
 struct WalkNodesOutput<'a> {
