@@ -2,7 +2,7 @@
 name = "rstml"
 description = "Rust templating parser for JSX-like TokenStreams"
 version = "0.10.1"
-authors = ["vldm <me@vldm.ccc>","stoically <stoically@protonmail.com>"]
+authors = ["vldm <me@vldm.cc>","stoically <stoically@protonmail.com>"]
 keywords = ["syn", "jsx", "rsx", "html", "macro"]
 edition = "2018"
 repository = "https://github.com/rs-tml/rstml"

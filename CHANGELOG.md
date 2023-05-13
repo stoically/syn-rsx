@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.10.0] - 2023-05-13
 
 ### Chore
 
