@@ -4,8 +4,8 @@ use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
 use rstml::{
-    parse2, parse2_with_config, KeyedAttribute, Node, NodeAttribute, NodeElement, NodeType,
-    ParserConfig,
+    node::{KeyedAttribute, Node, NodeAttribute, NodeElement, NodeType},
+    parse2, Parser, ParserConfig,
 };
 use syn::Block;
 
@@ -226,7 +226,7 @@ fn test_flat_tree() -> Result<()> {
         </div>
         <div />
     };
-    let nodes = parse2_with_config(tokens, config)?;
+    let nodes = Parser::new(config).parse_simple(tokens)?;
 
     assert_eq!(nodes.len(), 7);
 
@@ -339,7 +339,8 @@ fn test_number_of_top_level_nodes() -> Result<()> {
         <div />
         <div />
     };
-    let nodes = parse2_with_config(tokens, ParserConfig::new().number_of_top_level_nodes(2));
+
+    let nodes = Parser::new(ParserConfig::new().number_of_top_level_nodes(2)).parse_simple(tokens);
     assert!(nodes.is_err());
 
     let tokens = quote! {
@@ -348,16 +349,14 @@ fn test_number_of_top_level_nodes() -> Result<()> {
         </div>
         <div />
     };
-    let nodes = parse2_with_config(
-        tokens,
-        ParserConfig::new().number_of_top_level_nodes(2).flat_tree(),
-    );
+    let nodes = Parser::new(ParserConfig::new().number_of_top_level_nodes(2).flat_tree())
+        .parse_simple(tokens);
     assert!(nodes.is_ok());
 
     let tokens = quote! {
         <div />
     };
-    let nodes = parse2_with_config(tokens, ParserConfig::new().number_of_top_level_nodes(2));
+    let nodes = Parser::new(ParserConfig::new().number_of_top_level_nodes(2)).parse_simple(tokens);
     assert!(nodes.is_err());
 
     Ok(())
@@ -368,9 +367,8 @@ fn test_type_of_top_level_nodes() -> Result<()> {
     let tokens = quote! {
         "foo"
     };
-
-    let config = ParserConfig::new().type_of_top_level_nodes(NodeType::Element);
-    let nodes = parse2_with_config(tokens, config);
+    let nodes = Parser::new(ParserConfig::new().type_of_top_level_nodes(NodeType::Element))
+        .parse_simple(tokens);
 
     assert!(nodes.is_err());
 
@@ -390,7 +388,7 @@ fn test_transform_block_some() -> Result<()> {
         Ok(Some(quote! { "percent" }))
     });
 
-    let nodes = parse2_with_config(tokens, config)?;
+    let nodes = Parser::new(config).parse_simple(tokens)?;
     let Node::Block(block) = get_element_child(&nodes, 0, 0) else { panic!("expected block") };
 
     assert_eq!(
@@ -419,7 +417,7 @@ fn test_transform_block_none() -> Result<()> {
     };
 
     let config = ParserConfig::new().transform_block(|_| Ok(None));
-    let nodes = parse2_with_config(tokens, config);
+    let nodes = Parser::new(config).parse_simple(tokens);
 
     assert!(nodes.is_ok());
 

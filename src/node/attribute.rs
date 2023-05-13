@@ -7,8 +7,8 @@ use syn::{
 };
 
 use crate::{
+    node::{NodeBlock, NodeName},
     parser::recoverable::{ParseRecoverable, RecoverableContext},
-    NodeBlock, NodeName,
 };
 
 #[derive(Clone, Debug, syn_derive::ToTokens)]
@@ -99,9 +99,15 @@ pub enum NodeAttribute {
     /// Element attribute that is computed from rust code block.
     ///
     /// Example:
-    /// {"some-fixed-key"} // attribute without value that is computed from
-    /// string
+    /// `<div {"some-fixed-key"}>` // attribute without value
+    /// that is computed from string
     Block(NodeBlock),
+    ///
+    /// Element attribute with fixed, and possible value.
+    ///
+    /// Example:
+    /// `<div attr>`
+    /// `<div attr = value>`
     Attribute(KeyedAttribute),
 }
 

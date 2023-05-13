@@ -30,7 +30,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .into_iter()
                 .collect(),
             );
-            rstml::parse2_with_config(tokens.clone(), config)
+            rstml::Parser::new(config).parse_simple(tokens.clone())
         })
     });
     c.bench_function("rstml::parse2(rust_site)", |b| {
@@ -43,7 +43,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .into_iter()
                 .collect(),
             );
-            rstml::parse2_with_config(RUST_SITE_SIMPLE.with(|tokens| tokens.clone()), config)
+            rstml::Parser::new(config).parse_simple(tokens.clone())
         })
     });
 }

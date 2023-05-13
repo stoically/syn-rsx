@@ -14,17 +14,17 @@ use syn::{
 
 use super::{
     atoms::{
-        token::{self, DocStart},
+        tokens::{self, DocStart},
         CloseTag, FragmentClose, FragmentOpen, OpenTag,
     },
     raw_text::RawText,
     Node, NodeBlock, NodeDoctype, NodeFragment,
 };
 use crate::{
+    atoms::CloseTagStart,
     config::TransformBlockFn,
+    node::{NodeAttribute, NodeElement},
     parser::recoverable::{ParseRecoverable, RecoverableContext},
-    token::CloseTagStart,
-    NodeAttribute, NodeElement,
 };
 
 impl ParseRecoverable for NodeBlock {
@@ -133,8 +133,8 @@ impl ParseRecoverable for OpenTag {
         }
         let name = parser.parse_simple(input)?;
 
-        let (attributes, end_tag) =
-            parser.parse_tokens_with_ending::<NodeAttribute, _, _>(input, token::OpenTagEnd::parse);
+        let (attributes, end_tag) = parser
+            .parse_tokens_with_ending::<NodeAttribute, _, _>(input, tokens::OpenTagEnd::parse);
 
         if end_tag.is_none() {
             parser.push_diagnostic(Diagnostic::new(Level::Error, "expected end of tag '>'"));
@@ -260,7 +260,7 @@ impl RecoverableContext {
     /// Stop parsing array when other branch could parse anything.
     ///
     /// Example:
-    /// ```no_build
+    /// ```ignore
     /// # use syn::{parse::{Parser, ParseStream}, Ident, Result, parse_macro_input, Token};
     /// # use rstml::{parse_tokens_until};
     /// # fn main() -> syn::Result<()>{
@@ -284,7 +284,7 @@ impl RecoverableContext {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn parse_tokens_until<T, F, U>(
+    pub(crate) fn parse_tokens_until<T, F, U>(
         &mut self,
         input: ParseStream,
         stop: F,
@@ -296,7 +296,7 @@ impl RecoverableContext {
         let mut collection = vec![];
         let res = loop {
             let old_cursor = input.cursor();
-            let fork = input.fork();
+            let fork = dbg!(input).fork();
             if let Ok(res) = stop(&fork) {
                 input.advance_to(&fork);
                 break Some(res);
@@ -319,13 +319,13 @@ impl RecoverableContext {
     ///
     ///
     /// Example:
-    /// ```no_build
+    /// ```ignore
     /// let tokens = quote!(some_expr_seperated + with - lt_gt * tokens <> other part);
     /// ```
     /// In this example "<" can can be parsed as part of expression, but we want
     /// to split tokens after "<>" was found. So instead of parsing all
     /// input as expression, firstly we need to seperate it into two chunks.
-    pub fn parse_tokens_with_ending<T, F, U>(
+    pub(crate) fn parse_tokens_with_ending<T, F, U>(
         &mut self,
         input: ParseStream,
         separator: F,
@@ -363,7 +363,7 @@ impl RecoverableContext {
         self.parse_with_ending(input, parser, separator)
     }
 
-    pub fn parse_with_ending<F, CNV, V, U>(
+    pub(crate) fn parse_with_ending<F, CNV, V, U>(
         &mut self,
         input: ParseStream,
         parser: CNV,

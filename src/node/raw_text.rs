@@ -7,7 +7,7 @@ use syn::{
     LitStr, Token,
 };
 
-use crate::Node;
+use super::Node;
 
 /// Raw unquoted text
 ///
@@ -44,7 +44,8 @@ impl RawText {
     }
 
     /// Try to get source text of the token stream.
-    /// Internally uses `Span::source_text`, so it can be not available.
+    /// Internally uses `Span::source_text` and `Span::join`, so it can be not
+    /// available.
     ///
     /// Optionally including witespaces.
     /// Whitespaces can be recovered only if before and after `RawText` was

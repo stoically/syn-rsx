@@ -3,7 +3,10 @@ use std::{convert::TryFrom, str::FromStr};
 use eyre::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
-use rstml::{Node, NodeAttribute, NodeBlock, Parser, ParserConfig};
+use rstml::{
+    node::{Node, NodeAttribute, NodeBlock},
+    Parser, ParserConfig,
+};
 use syn::Block;
 
 #[test]

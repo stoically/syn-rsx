@@ -9,8 +9,8 @@ use syn::{
     Block, ExprPath, Ident, Path, PathSegment,
 };
 
-use super::path_to_string;
-use crate::{punctuation::Dash, tokens::block_expr, Error, Parser};
+use super::{atoms::tokens::Dash, path_to_string};
+use crate::{node::parse::block_expr, Error, Parser};
 
 /// Name of the node.
 #[derive(Clone, Debug, syn_derive::ToTokens)]

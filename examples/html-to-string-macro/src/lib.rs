@@ -3,7 +3,10 @@ use std::collections::HashSet;
 use proc_macro::TokenStream;
 use proc_macro2::{Literal, TokenTree};
 use quote::{quote, quote_spanned, ToTokens};
-use rstml::{Node, NodeAttribute, NodeName, Parser, ParserConfig};
+use rstml::{
+    node::{Node, NodeAttribute, NodeName},
+    Parser, ParserConfig,
+};
 use syn::spanned::Spanned;
 
 #[derive(Default)]

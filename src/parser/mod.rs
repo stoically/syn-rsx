@@ -14,10 +14,15 @@ use syn::{
 
 pub mod recoverable;
 
-use self::recoverable::{ParseRecoverable, ParsingResult, RecoverableContext, RecoveryConfig};
+use self::recoverable::{ParseRecoverable, ParsingResult, RecoverableContext};
 use crate::{node::*, ParserConfig};
 
-/// RSX Parser
+///
+/// Primary library interface to RSX Parser
+///
+/// Allows customization through `ParserConfig`.
+/// Support recovery after parsing invalid token.
+
 pub struct Parser {
     config: ParserConfig,
 }
@@ -52,12 +57,7 @@ impl Parser {
         let mut nodes = vec![];
         let mut top_level_nodes = 0;
 
-        let mut parser = RecoverableContext::new(RecoveryConfig {
-            recover_block: self.config.recover_block,
-            raw_text_elements: self.config.raw_text_elements.clone(),
-            always_self_closed_elements: self.config.always_self_closed_elements.clone(),
-            transform_block: self.config.transform_block.clone(),
-        });
+        let mut parser = RecoverableContext::new(self.config.clone().into());
         while !input.cursor().eof() {
             let Some(parsed_node) = Node::parse_recoverable(&mut parser, input) else {
                 parser.push_diagnostic(input.error(format!(
@@ -120,7 +120,7 @@ impl Parser {
     /// consider a PR upstream.
     ///
     /// [`Punctuated::parse_separated_nonempty`]: https://docs.rs/syn/1.0.58/syn/punctuated/struct.Punctuated.html#method.parse_separated_nonempty
-    pub fn node_name_punctuated_ident<T: Parse, F: Peek, X: From<Ident>>(
+    pub(crate) fn node_name_punctuated_ident<T: Parse, F: Peek, X: From<Ident>>(
         input: ParseStream,
         punct: F,
     ) -> Result<Punctuated<X, T>> {
@@ -148,7 +148,12 @@ impl Parser {
 
     /// Parse the stream as punctuated idents, with two possible punctuations
     /// available
-    pub fn node_name_punctuated_ident_with_alternate<T: Parse, F: Peek, G: Peek, X: From<Ident>>(
+    pub(crate) fn node_name_punctuated_ident_with_alternate<
+        T: Parse,
+        F: Peek,
+        G: Peek,
+        X: From<Ident>,
+    >(
         input: ParseStream,
         punct: F,
         alternate_punct: G,

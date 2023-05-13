@@ -2,22 +2,22 @@
 
 use std::fmt;
 
+use atoms::{tokens, FragmentClose, FragmentOpen};
 use proc_macro2::Ident;
 use syn::{ExprPath, LitStr, Token};
 
-mod atoms;
+pub mod atoms;
 mod attribute;
 mod node_name;
 mod node_value;
+pub mod parse;
 mod raw_text;
-pub mod tokens;
 
 pub use attribute::{KeyedAttribute, NodeAttribute};
 pub use node_name::NodeName;
 pub use node_value::NodeBlock;
 
-pub use self::atoms::*;
-use self::raw_text::RawText;
+pub use self::raw_text::RawText;
 
 /// Node types.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -113,7 +113,7 @@ impl Node {
 #[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeElement {
     pub open_tag: atoms::OpenTag,
-    #[to_tokens(tokens::to_tokens_array)]
+    #[to_tokens(parse::to_tokens_array)]
     pub children: Vec<Node>,
     pub close_tag: Option<atoms::CloseTag>,
 }
@@ -149,10 +149,10 @@ impl NodeText {
 /// `Text` (comment needs to be quoted).
 #[derive(Clone, Debug, syn_derive::Parse, syn_derive::ToTokens)]
 pub struct NodeComment {
-    pub token_start: token::ComStart,
+    pub token_start: tokens::ComStart,
     /// The comment value.
     pub value: LitStr,
-    pub token_end: token::ComEnd,
+    pub token_end: tokens::ComEnd,
 }
 /// Doctype node.
 ///
@@ -163,7 +163,7 @@ pub struct NodeComment {
 /// RawText.
 #[derive(Clone, Debug, syn_derive::ToTokens)]
 pub struct NodeDoctype {
-    pub token_start: token::DocStart,
+    pub token_start: tokens::DocStart,
     /// "doctype"
     pub token_doctype: Ident,
     /// The doctype value.
@@ -179,7 +179,7 @@ pub struct NodeFragment {
     /// Open fragment token
     pub tag_open: FragmentOpen,
     /// Children of the fragment node.
-    #[to_tokens(tokens::to_tokens_array)]
+    #[to_tokens(parse::to_tokens_array)]
     pub children: Vec<Node>,
     /// Close fragment token
     pub tag_close: Option<FragmentClose>,
