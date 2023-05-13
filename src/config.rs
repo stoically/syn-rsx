@@ -3,7 +3,7 @@ use std::{collections::HashSet, fmt::Debug, rc::Rc};
 use proc_macro2::TokenStream;
 use syn::{parse::ParseStream, Result};
 
-use crate::NodeType;
+use crate::node::NodeType;
 
 pub type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
 
@@ -92,7 +92,7 @@ impl ParserConfig {
     /// Parser will skip parsing of children nodes.
     /// and provide one child with RawText instead.
     ///
-    /// This is usefull when parsing <script> or <style> tags elements.
+    /// This is usefull when parsing `<script>` or `<style>` tags elements.
     ///
     /// If you need fragment to be used in this context, empty string("") should
     /// be inserted.

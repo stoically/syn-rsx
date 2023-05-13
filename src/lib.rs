@@ -8,7 +8,10 @@
 //!
 //! use eyre::bail;
 //! use quote::quote;
-//! use rstml::{parse2, Node, NodeAttribute, NodeElement, NodeText};
+//! use rstml::{
+//!     node::{Node, NodeAttribute, NodeElement, NodeText},
+//!     parse2,
+//! };
 //!
 //! // Create HTML `TokenStream`.
 //! let tokens = quote! { <hello world>"hi"</hello> };
@@ -47,7 +50,6 @@
 //!
 //! - **Text nodes**
 //!
-//!   Support for [unquoted text is planned].
 //!
 //!   ```rust
 //!   # use quote::quote;
@@ -56,6 +58,27 @@
 //!   <div>"String literal"</div>
 //!   # }).unwrap();
 //!   ```
+//!
+//!
+//! - **Unquoted text nodes**
+//!
+//! Unquoted text is supported with few limitations:
+//! - Only valid Rust TokenStream can be unquoted text (no single quote text is
+//!   supported, no unclosed braces, etc.)
+//! - Unquoted text not always can save spaces. It uses [`Span::source_text`]
+//!   and [`Span::join`] to retrive info about spaces, and it is not always
+//!   available.
+//! - Quoted text near unquoted treated as diferent Node, end library user
+//!   should decide whenever to preserve quotation.
+//!
+//! ```rust
+//! 
+//!   # use quote::quote;
+//!   # use rstml::parse2;
+//!   # parse2(quote! {
+//!    <div> Some string that is valid rust token stream </div>
+//!   # }).unwrap();
+//! ```
 //!
 //! - **Node names separated by dash, colon or double colon**
 //!
@@ -138,6 +161,32 @@
 //!     | |__________________^
 //!  ```
 //!
+//! - **Recoverable parser**
+//!
+//! Can parse html with multiple mistakes.
+//! As result library user get array of errors that can be reported, and tree of
+//! nodes that was parsed.
+//!
+//! ```rust
+//!   # use quote::quote;
+//!   # use rstml::{Parser, ParserConfig};
+//!   # Parser::new(ParserConfig::default()).parse_recoverable(quote! {
+//!  <div hello={world.} /> <!-- dot after world is invalid syn expression -->
+//!   <>
+//!       <div>"1"</x> <!-- incorrect closed tag -->
+//!       <div>"2"</div>
+//!       <div>"3"</div>
+//!       <div {"some-attribute-from-rust-block"}/>
+//!   </>
+//!   #});
+//! ```
+//!
+//! Using this feature one can write macro in IDE friendly way.
+//! This macro will work faster (because on invalid syntax it change output
+//! slightly, instead of removing it completely, so IDE can check diff quicly).
+//! And give completion (goto definition, and other semantic related feature)
+//! more often.
+//!
 //! - **Customization**
 //!
 //!   A [`ParserConfig`] to customize parsing behavior is available, so if you
@@ -154,6 +203,8 @@
 //! [`syn`]: /syn
 //! [`TokenStream`]: https://doc.rust-lang.org/proc_macro/struct.TokenStream.html
 //! [`Node`]: enum.Node.html
+//! [`Span::join`]: https://doc.rust-lang.org/proc_macro/struct.Span.html#method.join
+//! [`Span::source_text`]: https://doc.rust-lang.org/proc_macro/struct.Span.html#method.source_text
 //! [`ParserConfig`]: struct.ParserConfig.html
 //! [mod style path]: https://docs.rs/syn/1.0.40/syn/struct.Path.html#method.parse_mod_style
 //! [unquoted text is planned]: https://github.com/stoically/syn-rsx/issues/2
@@ -167,23 +218,14 @@ use syn::Result;
 
 mod config;
 mod error;
-mod node;
+pub mod node;
 mod parser;
-
-pub mod punctuation {
-    //! Custom syn punctuations
-    use syn::custom_punctuation;
-
-    custom_punctuation!(Dash, -);
-}
-
 pub use config::ParserConfig;
 pub use error::Error;
-pub use node::*;
-pub use parser::{
-    recoverable::{ParseRecoverable, ParsingResult, Recoverable},
-    Parser,
-};
+pub use node::atoms;
+use node::Node;
+// pub use node::*;
+pub use parser::{recoverable, recoverable::ParsingResult, Parser};
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree.
 ///
@@ -205,7 +247,10 @@ pub fn parse_with_config(
 ) -> Result<Vec<Node>> {
     Parser::new(config).parse_simple(tokens)
 }
-
+/// Parse the given [`proc-macro2::TokenStream`] into a [`Node`] tree.
+///
+/// [`proc-macro2::TokenStream`]: https://docs.rs/proc-macro2/latest/proc_macro2/struct.TokenStream.html
+/// [`Node`]: struct.Node.html
 pub fn parse2(tokens: proc_macro2::TokenStream) -> Result<Vec<Node>> {
     Parser::new(ParserConfig::default()).parse_simple(tokens)
 }

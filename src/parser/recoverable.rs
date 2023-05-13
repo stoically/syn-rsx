@@ -3,7 +3,7 @@ use std::{collections::HashSet, fmt::Debug, rc::Rc};
 use proc_macro2_diagnostics::{Diagnostic, Level};
 use syn::parse::{Parse, ParseStream};
 
-use crate::config::TransformBlockFn;
+use crate::{config::TransformBlockFn, ParserConfig};
 
 #[derive(Default)]
 pub struct RecoveryConfig {
@@ -13,8 +13,8 @@ pub struct RecoveryConfig {
     pub(crate) recover_block: bool,
     /// elements that has no child and is always self closed like <img> and <br>
     pub(crate) always_self_closed_elements: HashSet<&'static str>,
-    /// Elements like <script> <style>, context of which is not a valid html,
-    /// and should be provided as is.
+    /// Elements like `<script>` `<style>`, context of which is not a valid
+    /// html, and should be provided as is.
     pub(crate) raw_text_elements: HashSet<&'static str>,
     pub(crate) transform_block: Option<Rc<TransformBlockFn>>,
 }
@@ -151,6 +151,17 @@ impl<T> From<syn::Result<T>> for ParsingResult<T> {
         match result {
             Result::Ok(r) => ParsingResult::Ok(r),
             Result::Err(e) => ParsingResult::Failed(vec![e.into()]),
+        }
+    }
+}
+
+impl From<crate::ParserConfig> for RecoveryConfig {
+    fn from(config: ParserConfig) -> Self {
+        RecoveryConfig {
+            recover_block: config.recover_block,
+            raw_text_elements: config.raw_text_elements.clone(),
+            always_self_closed_elements: config.always_self_closed_elements.clone(),
+            transform_block: config.transform_block.clone(),
         }
     }
 }
