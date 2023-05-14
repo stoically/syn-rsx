@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.2] - 2023-05-14
+
+### Documentation
+
+- Fixup cargo docs
+
 ## [0.10.0] - 2023-05-13
 
 ### Chore
