@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.3] - 2023-05-14
+
+### Chore
+
+- Remove dbg macro.
+
 ## [0.10.2] - 2023-05-14
 
 ### Documentation

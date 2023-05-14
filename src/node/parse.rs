@@ -296,7 +296,7 @@ impl RecoverableContext {
         let mut collection = vec![];
         let res = loop {
             let old_cursor = input.cursor();
-            let fork = dbg!(input).fork();
+            let fork = input.fork();
             if let Ok(res) = stop(&fork) {
                 input.advance_to(&fork);
                 break Some(res);

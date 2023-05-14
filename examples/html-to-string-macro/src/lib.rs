@@ -92,7 +92,6 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> WalkNodesOutput<'a> {
                 let tokens = text.to_string_best();
                 let literal = Literal::string(&tokens);
 
-                // dbg!(text.span().source_text());
                 out.values.push(TokenTree::from(literal).into());
             }
             Node::Fragment(fragment) => {
@@ -150,8 +149,7 @@ pub fn html(tokens: TokenStream) -> TokenStream {
             .collect(),
         )
         .raw_text_elements(["script", "style"].into_iter().collect());
-    //dbg!
-    // (&tokens);
+
 
     let parser = Parser::new(config);
     let (nodes, errors) = parser.parse_recoverable(tokens).split_vec();
