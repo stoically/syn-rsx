@@ -1,7 +1,7 @@
 [package]
 name = "rstml"
 description = "Rust templating for XML-based formats (HTML, SVG, MathML) implemented on top of proc-macro::TokenStreams"
-version = "0.10.5"
+version = "0.10.6"
 authors = ["vldm <me@vldm.cc>","stoically <stoically@protonmail.com>"]
 keywords = ["syn", "jsx", "rsx", "html", "macro"]
 edition = "2018"
@@ -9,6 +9,7 @@ repository = "https://github.com/rs-tml/rstml"
 readme = "README.md"
 license = "MIT"
 resolver = "2"
+include = ["/src", "LICENSE"]
 
 [lib]
 bench = false
@@ -29,8 +30,10 @@ eyre = "0.6.8"
 [[bench]]
 name = "bench"
 harness = false
+path = "benches/bench.rs"
 
 [workspace]
 members = [
     "examples/html-to-string-macro"
 ]
+
