@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.4] - 2023-05-17
+
+### Chore
+
+- Fix fmt add git-hook
+
 ## [0.10.3] - 2023-05-14
 
 ### Chore
