@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.5] - 2023-05-17
+
+### Chore
+
+- Fix docs build.
+
 ## [0.10.4] - 2023-05-17
 
 ### Chore
