@@ -1,0 +1,37 @@
+#!/bin/sh
+
+test() {
+    RESULT=0
+    echo "git-hooks: Running tests before pushing ...."
+    cargo +nightly fmt --all -- --check
+    RESULT=$?
+    if [[ "$RESULT" -ne 0 ]]; then
+        echo "git-hooks: Fmt check failed, stop pushing"
+        return $RESULT
+    fi
+    cargo +stable test
+    RESULT=$?
+    if [[ "$RESULT" -ne 0 ]]; then 
+        echo "git-hooks: Test failed, stop pushing"
+    fi
+    return $RESULT
+}
+
+branch=`git rev-parse --abbrev-ref HEAD`
+if [ $branch == 'main' ]; then
+    hasChanges=$(git diff)
+    STASH_NAME="pre-push-$(date +%s)"
+    if [ -n "$hasChanges" ]; then
+        echo "git-hooks: Stashing changes, to test actual HEAD = $STASH_NAME"
+        git stash save -q --keep-index $STASH_NAME
+    fi
+    test
+    RESULT=$?
+    STASHES=$(git stash list | HEAD -n 1)
+    if [[ $STASHES == *"$STASH_NAME" ]]; then
+        git stash pop -q
+    fi
+    [ "$RESULT" -ne 0 ] && exit 1
+fi
+
+exit 0

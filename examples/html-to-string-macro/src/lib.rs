@@ -150,7 +150,6 @@ pub fn html(tokens: TokenStream) -> TokenStream {
         )
         .raw_text_elements(["script", "style"].into_iter().collect());
 
-
     let parser = Parser::new(config);
     let (nodes, errors) = parser.parse_recoverable(tokens).split_vec();
 
