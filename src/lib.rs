@@ -226,7 +226,6 @@ pub use config::ParserConfig;
 pub use error::Error;
 pub use node::atoms;
 use node::Node;
-// pub use node::*;
 pub use parser::{recoverable, recoverable::ParsingResult, Parser};
 
 /// Parse the given [`proc-macro::TokenStream`] into a [`Node`] tree.

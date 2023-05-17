@@ -135,6 +135,7 @@ impl RecoverableContext {
     }
 }
 
+///
 /// Result of parsing.
 pub enum ParsingResult<T> {
     /// Fully valid ast that was parsed without errors.
@@ -162,7 +163,7 @@ impl<T> ParsingResult<T> {
     }
 
     ///
-    /// Convert into [`syn::Result], with fail on first diagnostic message,
+    /// Convert into [`syn::Result`], with fail on first diagnostic message,
     /// Returns Error on [`ParsingResult::Failed`], and
     /// [`ParsingResult::Partial`].
     pub fn into_result(self) -> syn::Result<T> {

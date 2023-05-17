@@ -5,8 +5,8 @@
 [![codecov](https://codecov.io/gh/rs-tml/rstml/branch/main/graph/badge.svg?token=2LMJ8YEV92)](https://codecov.io/gh/rs-tml/rs-tml)
 ![build](https://github.com/rs-tml/rstml/workflows/ci/badge.svg)
 ![license: MIT](https://img.shields.io/crates/l/rstml.svg)
-
-Rust templating parser for JSX-like [`TokenStream`]s, aka RSX. The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
+Rust templating for XML-based formats (HTML, SVG, MathML) implemented on top of [`proc-macro::TokenStream`]s.
+Similar to JSX but for Rust (commonly named RSX).The parsed result is a nested `Node` structure, similar to the browser DOM, where node name and value are syn expressions to support building proc macros.
 
 The fork of original [syn-rsx](https://github.com/stoically/syn-rsx) repo.
 It was created because of various reasons:
