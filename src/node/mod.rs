@@ -71,7 +71,7 @@ impl Node {
             .collect::<Vec<_>>();
 
         std::iter::once(self)
-            .chain(children.into_iter().map(Self::flatten).flatten())
+            .chain(children.into_iter().flat_map(Self::flatten))
             .collect()
     }
     /// Get the type of the node.

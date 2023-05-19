@@ -9,10 +9,15 @@ test() {
         echo "git-hooks: Fmt check failed, stop pushing"
         return $RESULT
     fi
-    cargo +stable test
+    cargo +stable test --workspace
     RESULT=$?
     if [[ "$RESULT" -ne 0 ]]; then 
         echo "git-hooks: Test failed, stop pushing"
+    fi
+    cargo +stable clippy --workspace
+    RESULT=$?
+    if [[ "$RESULT" -ne 0 ]]; then 
+        echo "git-hooks: clippy failed, stop pushing"
     fi
     return $RESULT
 }

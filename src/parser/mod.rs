@@ -60,9 +60,7 @@ impl Parser {
         let mut parser = RecoverableContext::new(self.config.clone().into());
         while !input.cursor().eof() {
             let Some(parsed_node) = Node::parse_recoverable(&mut parser, input) else {
-                parser.push_diagnostic(input.error(format!(
-                    "Node parse failed"
-                )));
+                parser.push_diagnostic(input.error("Node parse failed".to_string()));
                 break;
             };
 
@@ -102,7 +100,7 @@ impl Parser {
         }
 
         let nodes = if self.config.flat_tree {
-            nodes.into_iter().map(Node::flatten).flatten().collect()
+            nodes.into_iter().flat_map(Node::flatten).collect()
         } else {
             nodes
         };

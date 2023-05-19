@@ -21,10 +21,10 @@ jobs:
         run: cargo build
 
       - name: test
-        run: |
-          cargo test
-          cd examples/html-to-string-macro
-          cargo test
+        run: cargo test --workspace
+
+      - name: clippy
+        run: cargo clippy --workspace
 
       - name: coverage
         run: |
