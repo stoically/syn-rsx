@@ -29,7 +29,7 @@ impl<'a> WalkNodesOutput<'a> {
     }
 }
 
-fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> WalkNodesOutput<'a> {
+fn walk_nodes(nodes: &Vec<Node>) -> WalkNodesOutput<'_> {
     let mut out = WalkNodesOutput::default();
 
     for node in nodes {
@@ -56,8 +56,7 @@ fn walk_nodes<'a>(nodes: &'a Vec<Node>) -> WalkNodesOutput<'a> {
                             out.values.push(block.to_token_stream());
                         }
                         NodeAttribute::Attribute(attribute) => {
-                            out.static_format
-                                .push_str(&format!(" {}", attribute.key.to_string()));
+                            out.static_format.push_str(&format!(" {}", attribute.key));
                             if let Some(value) = attribute.value() {
                                 out.static_format.push_str(r#"="{}""#);
                                 out.values.push(value.to_token_stream());

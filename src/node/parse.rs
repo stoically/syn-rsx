@@ -34,7 +34,7 @@ impl ParseRecoverable for NodeBlock {
         let block = match parse_valid_block_expr(parser, &fork) {
             Ok(value) => {
                 input.advance_to(&fork);
-                NodeBlock::ValidBlock(value.into())
+                NodeBlock::ValidBlock(value)
             }
             Err(e) if parser.config().recover_block => {
                 parser.push_diagnostic(e);
@@ -202,7 +202,7 @@ impl ParseRecoverable for NodeElement {
             parser.push_diagnostic(diagnostic);
             return Some(NodeElement {
                 open_tag,
-                children: children,
+                children,
                 close_tag: None,
             });
         };

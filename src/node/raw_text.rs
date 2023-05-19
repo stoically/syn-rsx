@@ -77,7 +77,7 @@ impl RawText {
             };
             span = Some(joined);
         }
-        return span;
+        span
     }
 
     pub fn is_empty(&self) -> bool {
@@ -96,9 +96,8 @@ impl RawText {
             .collect();
 
         for (spans, children) in spans.windows(3).zip(&mut children) {
-            match children {
-                Node::RawText(t) => t.set_tag_spans(spans[0], spans[2]),
-                _ => {}
+            if let Node::RawText(t) = children {
+                t.set_tag_spans(spans[0], spans[2])
             }
         }
         children
