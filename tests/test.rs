@@ -135,8 +135,8 @@ test_unquoted!(
         assert!(v.close_tag.is_none());
         assert_eq!(v.open_tag.name.to_string(), "div");
 
-        assert!(v.attributes().len() == 0 );
-        assert!(v.children.len() == 0 );
+        assert!(v.attributes().is_empty() );
+        assert!(v.children.is_empty() );
     };
     block => "{ x + 1 }" => Node::Block(v) => {
         // check that block valid
@@ -147,13 +147,13 @@ test_unquoted!(
         assert!(v.close_tag.is_some());
         assert_eq!(v.open_tag.name.to_string(), "div");
 
-        assert!(v.attributes().len() == 0 );
+        assert!(v.attributes().is_empty() );
         assert!(v.children.len() == 1 );
         let Node::Element(child) = v.children[0].clone() else {
             panic!("Not a element")
         };
-        assert!(child.attributes().len() == 0 );
-        assert!(child.children.len() == 0 );
+        assert!(child.attributes().is_empty() );
+        assert!(child.children.is_empty() );
         assert_eq!(child.open_tag.name.to_string(), "basd");
         assert!(child.close_tag.is_none());
     };

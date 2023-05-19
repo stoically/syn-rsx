@@ -26,6 +26,12 @@ jobs:
           cd examples/html-to-string-macro
           cargo test
 
+      - name: clippy
+        run: |
+          cargo clippy
+          cd examples/html-to-string-macro
+          cargo clippy
+
       - name: coverage
         run: |
           cargo install cargo-tarpaulin

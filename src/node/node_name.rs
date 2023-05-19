@@ -125,7 +125,7 @@ impl Parse for NodeName {
             let fork = &input.fork();
             let value = block_expr(fork)?;
             input.advance_to(fork);
-            Ok(NodeName::Block(value.into()))
+            Ok(NodeName::Block(value))
         } else if input.peek(Ident::peek_any) {
             let mut segments = Punctuated::new();
             let ident = Ident::parse_any(input)?;
