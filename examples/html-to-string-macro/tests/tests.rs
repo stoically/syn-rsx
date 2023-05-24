@@ -22,7 +22,8 @@ fn test() {
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>"Example"</title>
+                    <title>raw text, first child node " Text : second child node " raw text, third child node</title>
+                    <script>one single " Monolithic " raw text child node</script>
                 </head>
                 <body>
                     <!-- "comment" -->
@@ -41,7 +42,8 @@ fn test() {
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Example</title>
+                    <title>raw text, first child node Text : second child node raw text, third child node</title>
+                    <script>one single " Monolithic " raw text child node</script>
                 </head>
                 <body>
                     <!-- comment -->
